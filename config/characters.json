@@ -1,0 +1,38 @@
+{
+  "characters": {
+    "Mr. Jazz": {
+      "alignment": "PC",
+      "class": "Bard",
+      "race": "Gnome",
+      "level": 4,
+      "proficiency": 2,
+      "armor_class": 17,
+      "initiative": 4,
+      "spell_save": 12,
+      "spell_attack": 4,
+      "base_speed": 25,
+      "strength": 12,
+      "dexterity": 14,
+      "constitution": 13,
+      "intelligence": 12,
+      "wisdom": 8,
+      "charisma": 15,
+      "max_hp": 32,
+      "abilities": [
+        "gnome_cunning"
+      ],
+      "resources": [
+        {
+          "name": "spell_slot",
+          "level": 1,
+          "quantity": 4
+        },
+        {
+          "name": "spell_slot",
+          "level": 2,
+          "quantity": 3
+        }
+      ]
+    }
+  }
+}

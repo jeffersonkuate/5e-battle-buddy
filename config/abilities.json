@@ -1,0 +1,44 @@
+{
+  "abilities": {
+    "basic": {
+      "condition": "always",
+      "effect": {
+        "condition": "start_turn",
+        "set": [
+          {
+            "resource": "movement",
+            "value": "$base_speed"
+          },
+          {
+            "resource": "action",
+            "value": 1
+          },
+          {
+            "resource": "bonus_action",
+            "value": 1
+          },
+          {
+            "resource": "reaction",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "gnome_cunning": {
+      "condition": "always",
+      "effect": {
+        "condition": "always",
+        "advantage": {
+          "type": [
+            "magic"
+          ],
+          "roll": [
+            "wisdom",
+            "charisma",
+            "intelligence"
+          ]
+        }
+      }
+    }
+  }
+}

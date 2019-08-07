@@ -1,0 +1,22 @@
+{
+  "resources": {
+    "movement": {
+      "initial": "$base_speed"
+    },
+    "action": {
+      "initial": 1
+    },
+    "bonus_action": {
+      "initial": 1
+    },
+    "reaction": {
+      "initial": 1
+    },
+    "spell_slot": {
+      "initial": 0,
+      "properties": [
+        "level"
+      ]
+    }
+  }
+}

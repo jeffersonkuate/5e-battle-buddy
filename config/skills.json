@@ -1,0 +1,114 @@
+{
+  "skills": {
+    "rapier_attack": {
+      "profile": [
+        "action_attack",
+        "opportunity_attack"
+      ],
+      "target": {
+        "profile": "single_target",
+        "range": 5,
+        "affinity": "hostile"
+      },
+      "hit": {
+        "profile": "basic",
+        "base": "1d20",
+        "bonus": [
+          [
+            "$dexterity",
+            "$proficiency"
+          ],
+          [
+            "$strength",
+            "$proficiency"
+          ]
+        ],
+        "save": "$target.ac"
+      },
+      "effect": {
+        "profile": "attack",
+        "success": {
+          "base": "1d8",
+          "type": "piercing",
+          "bonus": [
+            [
+              "$dexterity"
+            ],
+            [
+              "$strength"
+            ]
+          ]
+        }
+      }
+    },
+    "heavy_crossbow_attack": {
+      "profile": [
+        "action_attack"
+      ],
+      "target": {
+        "profile": "single_target",
+        "range": [
+          100,
+          400
+        ],
+        "affinity": "hostile"
+      },
+      "hit": {
+        "profile": "basic",
+        "base": "1d20",
+        "bonus": [
+          [
+            "$dexterity",
+            "$proficiency"
+          ]
+        ],
+        "save": "$target.ac"
+      },
+      "effect": {
+        "profile": "attack",
+        "success": {
+          "base": "1d10",
+          "type": "piercing",
+          "bonus": [
+            [
+              "$dexterity"
+            ]
+          ]
+        }
+      }
+    },
+    "goblin_scimitar_attack": {
+      "profile": [
+        "action_attack",
+        "opportunity_attack"
+      ],
+      "target": {
+        "profile": "single_target",
+        "range": 5,
+        "affinity": "hostile"
+      },
+      "hit": {
+        "profile": "basic",
+        "base": "1d20",
+        "bonus": [
+          [
+            4
+          ]
+        ],
+        "save": "$target.ac"
+      },
+      "effect": {
+        "profile": "attack",
+        "success": {
+          "base": "1d6",
+          "type": "slashing",
+          "bonus": [
+            [
+              2
+            ]
+          ]
+        }
+      }
+    }
+  }
+}
