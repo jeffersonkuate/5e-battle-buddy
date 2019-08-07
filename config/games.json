@@ -1,0 +1,54 @@
+{
+  "games": [
+    {
+      "name": "2v1",
+      "board_width": 100,
+      "board_height": 100,
+      "characters": [
+        {
+          "name": "Mr. Jazz",
+          "position": [
+            50,
+            20
+          ]
+        },
+        {
+          "name": "Super Goblin",
+          "position": [
+            50,
+            50
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2v1",
+      "board_width": 100,
+      "board_height": 100,
+      "characters": [
+        {
+          "name": "Mr. Jazz",
+          "position": [
+            50,
+            20
+          ]
+        },
+        {
+          "name": "Super Goblin",
+          "position": [
+            30,
+            50
+          ]
+        },
+        {
+          "name": "Super Goblin",
+          "position": [
+            70,
+            50
+          ]
+        }
+      ]
+    }
+  ]
+}
+}

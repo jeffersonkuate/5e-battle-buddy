@@ -1,7 +1,6 @@
 {
   "characters": {
     "Mr. Jazz": {
-      "alignment": "PC",
       "class": "Bard",
       "race": "Gnome",
       "level": 4,
@@ -19,6 +18,7 @@
       "charisma": 15,
       "max_hp": 32,
       "abilities": [
+        "basic",
         "gnome_cunning"
       ],
       "resources": [
@@ -32,6 +32,28 @@
           "level": 2,
           "quantity": 3
         }
+      ],
+      "skills": [
+        "rapier_attack",
+        "heavy_crossbow_attack"
+      ]
+    },
+    "Super Goblin": {
+      "armor_class": 15,
+      "base_speed": 30,
+      "strength": 8,
+      "dexterity": 14,
+      "constitution": 10,
+      "intelligence": 10,
+      "wisdom": 8,
+      "charisma": 8,
+      "max_hp": 25,
+      "abilities": [
+        "basic",
+        "nimble_escape"
+      ],
+      "skills": [
+        "goblin_scimitar_attack"
       ]
     }
   }
