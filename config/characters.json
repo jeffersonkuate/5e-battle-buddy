@@ -6,7 +6,7 @@
       "level": 4,
       "proficiency": 2,
       "armor_class": 17,
-      "initiative": 4,
+      "initiative_bonus": 4,
       "spell_save": 12,
       "spell_attack": 4,
       "base_speed": 25,
@@ -31,6 +31,10 @@
           "name": "spell_slot",
           "level": 2,
           "quantity": 3
+        },
+        {
+          "name": "life",
+          "quantity": 1
         }
       ],
       "skills": [
@@ -51,6 +55,12 @@
       "abilities": [
         "basic",
         "nimble_escape"
+      ],
+      "resources": [
+        {
+          "name": "life",
+          "quantity": 1
+        }
       ],
       "skills": [
         "goblin_scimitar_attack"

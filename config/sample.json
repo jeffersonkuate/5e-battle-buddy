@@ -1,4 +1,89 @@
 {
+  "game": "1v1",
+  "strategy": {
+    "optimization_cycles": 10,
+    "generations": 100,
+    "nodes_per_trial": 20,
+    "trials_per_generation": 50,
+    "novel_node_coefficient": 0.5,
+    "mutated_node_coefficient": 0.1,
+    "merged_node_coefficient": 0.2
+  },
+  "configs": [
+    "characters.json",
+    "skills.json",
+    "abilities.json",
+    "resources.json",
+    "games.json"
+  ],
+  "characters": {
+    "Mr. Jazz": {
+      "class": "Bard",
+      "race": "Gnome",
+      "level": 4,
+      "proficiency": 2,
+      "armor_class": 17,
+      "initiative_bonus": 4,
+      "spell_save": 12,
+      "spell_attack": 4,
+      "base_speed": 25,
+      "strength": 12,
+      "dexterity": 14,
+      "constitution": 13,
+      "intelligence": 12,
+      "wisdom": 8,
+      "charisma": 15,
+      "max_hp": 32,
+      "abilities": [
+        "basic",
+        "gnome_cunning"
+      ],
+      "resources": [
+        {
+          "name": "spell_slot",
+          "level": 1,
+          "quantity": 4
+        },
+        {
+          "name": "spell_slot",
+          "level": 2,
+          "quantity": 3
+        },
+        {
+          "name": "life",
+          "quantity": 1
+        }
+      ],
+      "skills": [
+        "rapier_attack",
+        "heavy_crossbow_attack"
+      ]
+    },
+    "Super Goblin": {
+      "armor_class": 15,
+      "base_speed": 30,
+      "strength": 8,
+      "dexterity": 14,
+      "constitution": 10,
+      "intelligence": 10,
+      "wisdom": 8,
+      "charisma": 8,
+      "max_hp": 25,
+      "abilities": [
+        "basic",
+        "nimble_escape"
+      ],
+      "resources": [
+        {
+          "name": "life",
+          "quantity": 1
+        }
+      ],
+      "skills": [
+        "goblin_scimitar_attack"
+      ]
+    }
+  },
   "skills": {
     "movement": {
       "profile": "movement",
@@ -249,6 +334,164 @@
         {
           "name": "reaction",
           "quantity": 1
+        }
+      ]
+    }
+  },
+  "abilities": {
+    "basic": {
+      "condition": "always",
+      "effect": {
+        "condition": "start_turn",
+        "set": [
+          {
+            "resource": "movement",
+            "value": {
+              "property": {
+                "value": "base_speed"
+              }
+            }
+          },
+          {
+            "resource": "action",
+            "value": 1
+          },
+          {
+            "resource": "bonus_action",
+            "value": 1
+          },
+          {
+            "resource": "reaction",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "gnome_cunning": {
+      "condition": "always",
+      "effect": {
+        "condition": "always",
+        "advantage": {
+          "type": [
+            "magic"
+          ],
+          "roll": [
+            "wisdom",
+            "charisma",
+            "intelligence"
+          ]
+        }
+      }
+    }
+  },
+  "resources": {
+    "movement": {
+      "initial": {
+        "property": {
+          "value": "base_speed"
+        }
+      }
+    },
+    "action": {
+      "initial": 1
+    },
+    "bonus_action": {
+      "initial": 1
+    },
+    "reaction": {
+      "name": "reaction",
+      "initial": 1
+    },
+    "spell_slot": {
+      "initial": 0,
+      "properties": [
+        "level"
+      ],
+      "value": 5
+    },
+    "life": {
+      "initial": 1,
+      "value": 100
+    }
+  },
+  "games": {
+    "1v1": {
+      "board_width": 100,
+      "board_height": 100,
+      "characters": [
+        {
+          "name": "Mr. Jazz",
+          "alignment": "monster",
+          "position": [
+            50,
+            20
+          ],
+          "initiative": {
+            "initiative": {
+              "bonus": 0
+            }
+          }
+        },
+        {
+          "name": "Super Goblin",
+          "alignment": "monster",
+          "position": [
+            50,
+            50
+          ],
+          "initiative": {
+            "alignment": {
+              "monster": {
+                "initiative": {
+                  "bonus": 0
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "1v2": {
+      "board_width": 100,
+      "board_height": 100,
+      "characters": [
+        {
+          "name": "Mr. Jazz",
+          "alignment": "pc",
+          "position": [
+            50,
+            20
+          ],
+          "initiative": {
+            "initiative": {
+              "bonus": 0
+            }
+          }
+        },
+        {
+          "name": "Super Goblin",
+          "alignment": "monster",
+          "position": [
+            30,
+            50
+          ]
+        },
+        {
+          "name": "Super Goblin",
+          "alignment": "monster",
+          "position": [
+            70,
+            50
+          ],
+          "initiative": {
+            "alignment": {
+              "monster": {
+                "initiative": {
+                  "bonus": 0
+                }
+              }
+            }
+          }
         }
       ]
     }

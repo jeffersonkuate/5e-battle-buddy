@@ -1,7 +1,11 @@
 {
   "resources": {
     "movement": {
-      "initial": "$base_speed"
+      "initial": {
+        "property": {
+          "value": "base_speed"
+        }
+      }
     },
     "action": {
       "initial": 1
@@ -10,13 +14,19 @@
       "initial": 1
     },
     "reaction": {
+      "name": "reaction",
       "initial": 1
     },
     "spell_slot": {
       "initial": 0,
       "properties": [
         "level"
-      ]
+      ],
+      "value": 5
+    },
+    "life": {
+      "initial": 1,
+      "value": 100
     }
   }
 }
