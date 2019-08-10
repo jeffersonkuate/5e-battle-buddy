@@ -21,7 +21,6 @@ ADDITION = 'addition'
 SUBTRACTION = 'subtraction'
 MULTIPLICATION = 'multiplication'
 DIVISION = 'division'
-# TODO
 GREATER = 'greater'
 LESS = 'less'
 GREATER_OR_EQUAL = 'greater_or_equal'
@@ -83,6 +82,18 @@ class BasicContext(MutableMapping):
             SUBTRACTION: self.subtract,
             MULTIPLICATION: self.multiply,
             DIVISION: self.divide,
+            GREATER: self.greater,
+            LESS: self.less,
+            GREATER_OR_EQUAL: self.greater_or_equal,
+            LESS_OR_EQUAL: self.less_or_equal,
+            MAXIMUM: self.maximum,
+            MINIMUM: self.minimum,
+            CONTAINS: self.contains,
+            OR: self.func_or,
+            AND: self.func_and,
+            NOT: self.func_not,
+            GET: self.get,
+            EVAL: self.eval,
             DIE_ROLL: self.roll
         }
 
@@ -116,6 +127,83 @@ class BasicContext(MutableMapping):
         for argument in arguments[1:]:
             count /= self.eval(argument)
         return count
+
+    def greater(self, expression):
+        arguments = expression[ARGUMENTS]
+        value = self.eval(arguments[0])
+        for argument in arguments[1:]:
+            if self.eval(argument) <= value:
+                return False
+        return True
+
+    def less(self, expression):
+        arguments = expression[ARGUMENTS]
+        value = self.eval(arguments[0])
+        for argument in arguments[1:]:
+            if self.eval(argument) >= value:
+                return False
+        return True
+
+    def greater_or_equal(self, expression):
+        arguments = expression[ARGUMENTS]
+        value = self.eval(arguments[0])
+        for argument in arguments[1:]:
+            if self.eval(argument) < value:
+                return False
+        return True
+
+    def less_or_equal(self, expression):
+        arguments = expression[ARGUMENTS]
+        value = self.eval(arguments[0])
+        for argument in arguments[1:]:
+            if self.eval(argument) > value:
+                return False
+        return True
+
+    def maximum(self, expression):
+        arguments = expression[ARGUMENTS]
+        value = self.eval(arguments[0])
+        for argument in arguments[1:]:
+            argument_eval = self.eval(argument)
+            if argument_eval > value:
+                value = argument
+        return value
+
+    def minimum(self, expression):
+        arguments = expression[ARGUMENTS]
+        value = self.eval(arguments[0])
+        for argument in arguments[1:]:
+            argument_eval = self.eval(argument)
+            if argument_eval < value:
+                value = argument
+        return value
+
+    def contains(self, expression):
+        arguments = expression[ARGUMENTS]
+        value = self.eval(arguments[0])
+        for argument in arguments[1:]:
+            if self.eval(argument) not in value:
+                return False
+        return True
+
+    def func_and(self, expression):
+        arguments = expression[ARGUMENTS]
+        for argument in arguments:
+            argument_eval = self.eval(argument)
+            if not argument_eval:
+                return False
+        return True
+
+    def func_or(self, expression):
+        arguments = expression[ARGUMENTS]
+        for argument in arguments:
+            argument_eval = self.eval(argument)
+            if argument_eval:
+                return True
+        return False
+
+    def func_not(self, expression):
+        return not self.eval(expression[ARGUMENTS])
 
     def roll(self, expression):
         return self.die.roll(expression[self.eval(DIE_COUNT)], expression[self.eval(DIE_SIDES)])
