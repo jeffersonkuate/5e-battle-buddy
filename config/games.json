@@ -1,8 +1,14 @@
 {
   "games": {
-    "1v1": {
+    "basic": {
+      "prototype": true,
       "board_width": 100,
-      "board_height": 100,
+      "board_height": 100
+    },
+    "1v1": {
+      "prototypes": [
+        "basic"
+      ],
       "characters": [
         {
           "name": "Mr. Jazz",
@@ -26,10 +32,8 @@
           ],
           "initiative": {
             "alignment": {
-              "monster": {
-                "initiative": {
-                  "bonus": 0
-                }
+              "initiative": {
+                "bonus": 0
               }
             }
           }
@@ -37,8 +41,9 @@
       ]
     },
     "1v2": {
-      "board_width": 100,
-      "board_height": 100,
+      "prototypes": [
+        "basic"
+      ],
       "characters": [
         {
           "name": "Mr. Jazz",
@@ -59,7 +64,14 @@
           "position": [
             30,
             50
-          ]
+          ],
+          "initiative": {
+            "alignment": {
+              "initiative": {
+                "bonus": 0
+              }
+            }
+          }
         },
         {
           "name": "Super Goblin",
@@ -70,10 +82,8 @@
           ],
           "initiative": {
             "alignment": {
-              "monster": {
-                "initiative": {
-                  "bonus": 0
-                }
+              "initiative": {
+                "bonus": 0
               }
             }
           }

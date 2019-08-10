@@ -1,47 +1,141 @@
 {
   "abilities": {
     "basic": {
-      "condition": "always",
-      "effect": {
-        "condition": "start_turn",
-        "set": [
+      "hook": {
+        "profile": "start_turn"
+      },
+      "trigger": {
+        "effects": [
           {
-            "resource": "movement",
-            "value": {
-              "property": {
-                "value": "base_speed"
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "movement"
+                  }
+                }
+              },
+              {
+                "property": {
+                  "value": "base_speed"
+                }
               }
-            }
+            ]
           },
           {
-            "resource": "action",
-            "value": 1
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "action"
+                  }
+                }
+              },
+              {
+                "property": {
+                  "value": "1"
+                }
+              }
+            ]
           },
           {
-            "resource": "bonus_action",
-            "value": 1
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "bonus_action"
+                  }
+                }
+              },
+              {
+                "property": {
+                  "value": "1"
+                }
+              }
+            ]
           },
           {
-            "resource": "reaction",
-            "value": 1
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "reaction"
+                  }
+                }
+              },
+              {
+                "property": {
+                  "value": "1"
+                }
+              }
+            ]
           }
         ]
       }
     },
     "gnome_cunning": {
-      "condition": "always",
-      "effect": {
-        "condition": "always",
-        "advantage": {
-          "type": [
-            "magic"
-          ],
-          "roll": [
-            "wisdom",
-            "charisma",
-            "intelligence"
-          ]
-        }
+      "hook": {
+        "profile": "roll"
+      },
+      "trigger": {
+        "conditions": [
+          {
+            "current_roll": {
+              "or": {
+                "arguments": [
+                  {
+                    "contains": {
+                      "arguments": [
+                        {
+                          "property": {
+                            "value": "attributes"
+                          }
+                        },
+                        "magic",
+                        "wisdom"
+                      ]
+                    }
+                  },
+                  {
+                    "contains": {
+                      "arguments": [
+                        {
+                          "property": {
+                            "value": "attributes"
+                          }
+                        },
+                        "magic",
+                        "charisma"
+                      ]
+                    }
+                  },
+                  {
+                    "contains": {
+                      "arguments": [
+                        {
+                          "property": {
+                            "value": "attributes"
+                          }
+                        },
+                        "magic",
+                        "intelligence"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "success_effects": [
+          {
+            "profile": "advantage"
+          }
+        ]
       }
     }
   }

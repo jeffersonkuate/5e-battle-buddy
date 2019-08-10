@@ -2,6 +2,8 @@ import os
 import json
 import re
 import random
+from collections.abc import MutableMapping
+
 from display import Display
 
 
@@ -9,7 +11,7 @@ REGEX_LONG_PATH = '/'
 
 ARGUMENTS = 'arguments'
 CONDITION = 'condition'
-EFFECT = 'effect'
+EFFECTS = 'effects'
 VALUE = 'value'
 NAME = 'name'
 BONUS = 'bonus'
@@ -20,8 +22,18 @@ SUBTRACTION = 'subtraction'
 MULTIPLICATION = 'multiplication'
 DIVISION = 'division'
 # TODO
+GREATER = 'greater'
+LESS = 'less'
+GREATER_OR_EQUAL = 'greater_or_equal'
+LESS_OR_EQUAL = 'less_or_equal'
 MAXIMUM = 'max'
 MINIMUM = 'min'
+CONTAINS = 'contains'
+OR = 'or'
+AND = 'and'
+NOT = 'not'
+GET = 'get'
+EVAL = 'eval'
 
 STRENGTH = 'strength'
 DEXTERITY = 'dexterity'
@@ -46,7 +58,22 @@ DIE_COUNT = 'count'
 DIE_SIDES = 'sides'
 
 
-class BasicContext:
+class BasicContext(MutableMapping):
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+    def __delitem__(self, value):
+        self.properties.__delitem__(value)
+
+    def __getitem__(self, key):
+        self.get(key)
+
+    def __len__(self):
+        self.properties.__len__()
+
+    def __iter__(self):
+        self.properties.__iter__()
+
     def __init___(self, properties):
         self.properties = properties
         self.die = Die()
@@ -108,7 +135,7 @@ class BasicContext:
         if hasattr(self, key):
             value = getattr(self, key)
         else:
-            value = self.properties.get(key)
+            value = self.properties[key]
         return value
 
     def set(self, key, value):
@@ -212,6 +239,30 @@ def search(reg, string):
 
 def match(reg, string):
     return not (re.match(reg.lower(), string.lower()) is None)
+
+
+def deep_fill(dictionary, update):
+    if is_dict(update):
+        for key in update.keys():
+            value = dictionary[key]
+            if value is None:
+                dictionary[key] = deep_copy(update[key])
+            else:
+                deep_fill(dictionary[key], update[key])
+
+
+def deep_copy(dictionary):
+    value = {}
+    if is_dict(dictionary):
+        for key in dictionary.keys():
+            value[key] = deep_copy(dictionary[key])
+        return value
+    else:
+        return dictionary
+
+
+def is_dict(dictionary):
+    return issubclass(dict, dictionary) or issubclass(BasicContext, dictionary)
 
 
 def main():

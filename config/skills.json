@@ -2,37 +2,267 @@
   "skills": {
     "movement": {
       "profile": "movement",
-      "target": {
+      "targeting": {
         "profile": "single_target"
       },
-      "effect": {
-        "profile": "movement"
-      },
-      "resources": [
+      "conditions": [
         {
-          "name": "movement",
-          "quantity": 1
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "movement": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
         }
-      ]
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "movement"
+          },
+          {
+            "profile": "debit",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "movement"
+                  }
+                }
+              },
+              1
+            ]
+          }
+        ]
+      }
     },
-    "rapier_attack": {
+    "attack": {
+      "prototype": true,
+      "profile": "attack",
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "get": {
+                    "arguments": [
+                      {
+                        "property": {
+                          "value": {
+                            "property": {
+                              "value": "attack_resource"
+                            }
+                          }
+                        }
+                      },
+                      "quantity"
+                    ]
+                  }
+                }
+              },
+              {
+                "property": {
+                  "value": "attack_cost"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "conditions": [
+          {
+            "greater_or_equal": {
+              "arguments": [
+                {
+                  "add": {
+                    "arguments": [
+                      {
+                        "roll": {
+                          "count": 1,
+                          "sides": 20
+                        }
+                      },
+                      {
+                        "eval": {
+                          "property": {
+                            "value": "attack_bonus"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "targeting": {
+                    "property": {
+                      "value": "armor_class"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "success_effects": [
+          {
+            "profile": "attack",
+            "type": "piercing",
+            "value": {
+              "add": {
+                "arguments": [
+                  {
+                    "eval": {
+                      "property": {
+                        "value": "damage_base"
+                      }
+                    }
+                  },
+                  {
+                    "eval": {
+                      "property": {
+                        "value": "damage_bonus"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "profile": "debit",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": {
+                      "property": {
+                        "value": "attack_resource"
+                      }
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        ]
+      }
+    },
+    "action_attack": {
+      "prototype": true,
       "profile": "action_attack",
-      "target": {
-        "profile": "single_target",
-        "range": 5,
-        "affinity": "hostile"
-      },
-      "hit": {
-        "profile": "basic",
-        "value": {
+      "prototypes": [
+        "attack"
+      ],
+      "properties": {
+        "attack_resource": "action"
+      }
+    },
+    "opportunity_attack": {
+      "prototype": true,
+      "profile": "opportunity_attack",
+      "prototypes": [
+        "attack"
+      ],
+      "properties": {
+        "attack_resource": "reaction"
+      }
+    },
+    "melee_weapon_attack": {
+      "prototype": true,
+      "prototypes": [
+        "attack"
+      ],
+      "properties": {
+        "attack_cost": 1,
+        "attack_bonus": {
           "add": {
             "arguments": [
               {
-                "roll": {
-                  "count": 1,
-                  "sides": 20
+                "property": {
+                  "value": "strength_am"
                 }
               },
+              {
+                "property": {
+                  "value": "proficiency"
+                }
+              }
+            ]
+          }
+        },
+        "damage_bonus": {
+          "property": {
+            "value": "strength_am"
+          }
+        }
+      },
+      "targeting": {
+        "profile": "single_target",
+        "range": 5,
+        "affinity": "hostile"
+      }
+    },
+    "ranged_weapon_attack": {
+      "prototype": true,
+      "prototypes": [
+        "attack"
+      ],
+      "properties": {
+        "attack_cost": 1,
+        "attack_bonus": {
+          "add": {
+            "arguments": [
+              {
+                "property": {
+                  "value": "dexterity_am"
+                }
+              },
+              {
+                "property": {
+                  "value": "proficiency"
+                }
+              }
+            ]
+          }
+        },
+        "damage_bonus": {
+          "property": {
+            "value": "dexterity_am"
+          }
+        }
+      },
+      "targeting": {
+        "profile": "ranged_attack",
+        "range": [
+          100,
+          400
+        ],
+        "affinity": "hostile"
+      }
+    },
+    "finesse_weapon_attack": {
+      "prototype": true,
+      "prototypes": [
+        "melee_weapon_attack"
+      ],
+      "properties": {
+        "attack_cost": 1,
+        "attack_bonus": {
+          "add": {
+            "arguments": [
               {
                 "max": {
                   "arguments": [
@@ -57,199 +287,90 @@
             ]
           }
         },
-        "save": {
-          "target": {
-            "property": {
-              "value": "armor_class"
-            }
-          }
-        }
-      },
-      "effect": {
-        "profile": "attack",
-        "success": {
-          "value": {
-            "add": {
-              "arguments": [
-                {
-                  "roll": {
-                    "count": 1,
-                    "sides": 8
-                  }
-                },
-                {
-                  "max": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": "strength_am"
-                        }
-                      },
-                      {
-                        "property": {
-                          "value": "dexterity_am"
-                        }
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          },
-          "type": "piercing"
-        }
-      },
-      "resources": [
-        {
-          "name": "action",
-          "quantity": 1
-        }
-      ]
-    },
-    "rapier_attack_of_opportunity": {
-      "profile": "opportunity_attack",
-      "clone": "rapier_attack",
-      "resources": [
-        {
-          "name": "reaction",
-          "quantity": 1
-        }
-      ]
-    },
-    "heavy_crossbow_attack": {
-      "profile": "action_attack",
-      "target": {
-        "profile": "single_target",
-        "range": [
-          100,
-          400
-        ],
-        "affinity": "hostile"
-      },
-      "hit": {
-        "profile": "range_basic",
-        "value": {
-          "add": {
+        "damage_bonus": {
+          "max": {
             "arguments": [
               {
-                "roll": {
-                  "count": 1,
-                  "sides": 20
+                "property": {
+                  "value": "strength_am"
                 }
               },
               {
                 "property": {
                   "value": "dexterity_am"
                 }
-              },
-              {
-                "property": {
-                  "value": "proficiency"
-                }
               }
             ]
           }
-        },
-        "save": {
-          "target": {
-            "property": {
-              "value": "armor_class"
-            }
+        }
+      }
+    },
+    "rapier_attack": {
+      "prototype": true,
+      "prototypes": [
+        "finesse_weapon_attack"
+      ],
+      "properties": {
+        "damage_base": {
+          "roll": {
+            "count": 1,
+            "sides": 8
           }
         }
-      },
-      "effect": {
-        "profile": "attack",
-        "success": {
-          "value": {
-            "add": {
-              "arguments": [
-                {
-                  "roll": {
-                    "count": 1,
-                    "sides": 10
-                  }
-                },
-                {
-                  "property": {
-                    "value": "dexterity_am"
-                  }
-                }
-              ]
-            }
-          },
-          "type": "piercing"
-        }
-      },
-      "resources": [
-        {
-          "name": "action",
-          "quantity": 1
-        }
+      }
+    },
+    "rapier_action_attack": {
+      "prototypes": [
+        "action_attack",
+        "rapier_attack"
       ]
+    },
+    "rapier_opportunity_attack": {
+      "prototypes": [
+        "opportunity_attack",
+        "rapier_attack"
+      ]
+    },
+    "heavy_crossbow_attack": {
+      "prototypes": [
+        "action_attack"
+      ],
+      "properties": {
+        "damage_base": {
+          "roll": {
+            "count": 1,
+            "sides": 10
+          }
+        }
+      }
     },
     "goblin_scimitar_attack": {
-      "profile": "action_attack",
-      "target": {
-        "profile": "single_target",
-        "range": 5,
-        "affinity": "hostile"
-      },
-      "hit": {
-        "profile": "basic",
-        "value": {
-          "add": {
-            "arguments": [
-              {
-                "roll": {
-                  "count": 1,
-                  "sides": 20
-                }
-              },
-              4
-            ]
-          }
-        },
-        "save": {
-          "property": {
-            "value": "armor_class"
+      "prototype": true,
+      "prototypes": [
+        "attack"
+      ],
+      "properties": {
+        "attack_cost": 1,
+        "attack_bonus": 4,
+        "damage_bonus": 2,
+        "damage_base": {
+          "roll": {
+            "count": 1,
+            "sides": 6
           }
         }
-      },
-      "effect": {
-        "profile": "attack",
-        "success": {
-          "value": {
-            "add": {
-              "arguments": [
-                {
-                  "roll": {
-                    "count": 1,
-                    "sides": 6
-                  }
-                },
-                2
-              ]
-            }
-          },
-          "type": "slashing"
-        }
-      },
-      "resources": [
-        {
-          "name": "action",
-          "quantity": 1
-        }
+      }
+    },
+    "goblin_scimitar_action_attack": {
+      "prototypes": [
+        "goblin_scimitar_attack",
+        "action_attack"
       ]
     },
-    "goblin_scimitar_attack_of_opportunity": {
-      "profile": "opportunity_attack",
-      "clone": "goblin_scimitar_attack",
-      "resources": [
-        {
-          "name": "reaction",
-          "quantity": 1
-        }
+    "goblin_scimitar_opportunity_attack": {
+      "prototypes": [
+        "goblin_scimitar_attack",
+        "opportunity_attack"
       ]
     }
   }
