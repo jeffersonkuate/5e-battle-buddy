@@ -18,15 +18,18 @@
       "initial": 1
     },
     "spell_slot": {
-      "initial": 0,
       "properties": [
         "level"
       ],
       "value": 5
     },
-    "life": {
+    "life":
+    {
       "initial": 1,
       "value": 100
+    },
+    "mischief": {
+      "value": 1
     }
   }
 }

@@ -9,6 +9,15 @@ from display import Display
 
 REGEX_LONG_PATH = '/'
 
+GAME = 'game'
+GAMES = 'games'
+STRATEGY = 'strategy'
+CONFIG = 'config'
+CHARACTERS = 'characters'
+SKILLS = 'skills'
+ABILITIES = 'abilities'
+RESOURCES = 'resources'
+
 ARGUMENTS = 'arguments'
 CONDITION = 'condition'
 EFFECTS = 'effects'
@@ -16,6 +25,8 @@ VALUE = 'value'
 NAME = 'name'
 BONUS = 'bonus'
 CONTEXT = 'property'
+PROTOTYPE = 'prototype'
+PROTOTYPES = 'prototypes'
 
 ADDITION = 'addition'
 SUBTRACTION = 'subtraction'
@@ -73,7 +84,8 @@ class BasicContext(MutableMapping):
     def __iter__(self):
         self.properties.__iter__()
 
-    def __init___(self, properties):
+    def __init___(self, properties, base=None):
+        self.base = base
         self.properties = properties
         self.die = Die()
         self.function_map = {
@@ -224,13 +236,20 @@ class BasicContext(MutableMapping):
             value = getattr(self, key)
         else:
             value = self.properties[key]
-        return value
+
+        if not (value or self.base):
+            return self.base.get(key)
+        else:
+            return value
 
     def set(self, key, value):
         if hasattr(self, key):
             setattr(self, key, value)
         else:
             self.properties[key] = value
+
+        if self.base:
+            self.base.set(key, value)
 
 
 class Game(BasicContext):
@@ -276,6 +295,11 @@ class Board(BasicContext):
         super.__init__(self, {})
 
 
+class StrategyFactory:
+    def __init__(self, game, expression):
+        self.game = game
+
+
 class Strategy:
     def __init__(self, game):
         self.game = game
@@ -296,9 +320,9 @@ class Die:
         return count
 
 
-def unload_config(game, strategy, config):
+def unload_config(game, config):
     pass
-
+    # create_strategy_factory(config[])
 
 def load_config():
     config = load('config.json')
@@ -311,6 +335,26 @@ def load(path):
     if not match(REGEX_LONG_PATH, path):
         path = os.getcwd() + '/config/' + path
     return json.load(open(path))
+
+
+def create_strategy_factory(expression, game):
+    pass
+
+
+def create_skill(expression, game):
+    pass
+
+
+def create_ability(expression, game):
+    pass
+
+
+def create_resource(expression, game):
+    pass
+
+
+def create_game(expression, game):
+    pass
 
 
 def report_strategy(strategy, display):
@@ -329,9 +373,32 @@ def match(reg, string):
     return not (re.match(reg.lower(), string.lower()) is None)
 
 
+def get_concretes(expression):
+    values = {}
+    concretes = {}
+
+    for key in expression:
+        value = expression[key]
+        prototypes = []
+        if PROTOTYPES in value:
+            prototypes = value[PROTOTYPES]
+
+        for prototype in prototypes:
+            deep_fill(value, values[prototype])
+
+        values[key] = value
+
+    for key in values:
+        value = values[key]
+        if not value[PROTOTYPE]:
+            concretes[key] = value
+
+    return concretes
+
+
 def deep_fill(dictionary, update):
     if is_dict(update):
-        for key in update.keys():
+        for key in update:
             value = dictionary[key]
             if value is None:
                 dictionary[key] = deep_copy(update[key])
@@ -342,7 +409,7 @@ def deep_fill(dictionary, update):
 def deep_copy(dictionary):
     value = {}
     if is_dict(dictionary):
-        for key in dictionary.keys():
+        for key in dictionary:
             value[key] = deep_copy(dictionary[key])
         return value
     else:
@@ -358,13 +425,12 @@ def main():
     config = load_config()
     display.print(json.dumps(config))
     game = Game()
-    strategy = Strategy(game)
-    unload_config(game, strategy, config)
+    unload_config(game, config)
 
     for i in range(config["strategy"]["optimization_cycles"]):
         for alignment in game.alignments:
-            strategy.optimize(alignment)
-            report_strategy(strategy, display)
+            game.strategies[alignment.name].optimize()
+            report_strategy(game, display)
 
 
 if __name__ == '__main__':

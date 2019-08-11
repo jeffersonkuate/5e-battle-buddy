@@ -77,6 +77,32 @@
         ]
       }
     },
+    "mischievous": {
+      "hook": {
+        "profile": "damage_done"
+      },
+      "trigger": {
+        "effects": [
+          {
+            "profile": "debit",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "mischief"
+                  }
+                }
+              },
+              {
+                "property": {
+                  "value": "value"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
     "gnome_cunning": {
       "hook": {
         "profile": "roll"

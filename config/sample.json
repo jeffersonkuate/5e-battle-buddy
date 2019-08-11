@@ -7,7 +7,12 @@
     "trials_per_generation": 50,
     "novel_node_coefficient": 0.5,
     "mutated_node_coefficient": 0.1,
-    "merged_node_coefficient": 0.2
+    "merged_node_coefficient": 0.2,
+    "strategy_grouping": {
+      "property": {
+        "value": "alignment"
+      }
+    }
   },
   "configs": [
     "characters.json",
@@ -537,6 +542,32 @@
         ]
       }
     },
+    "mischievous": {
+      "hook": {
+        "profile": "damage_done"
+      },
+      "trigger": {
+        "effects": [
+          {
+            "profile": "debit",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "mischief"
+                  }
+                }
+              },
+              {
+                "property": {
+                  "value": "value"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
     "gnome_cunning": {
       "hook": {
         "profile": "roll"
@@ -618,7 +649,6 @@
       "initial": 1
     },
     "spell_slot": {
-      "initial": 0,
       "properties": [
         "level"
       ],
@@ -627,6 +657,9 @@
     "life": {
       "initial": 1,
       "value": 100
+    },
+    "mischief": {
+      "value": 1
     }
   },
   "games": {
