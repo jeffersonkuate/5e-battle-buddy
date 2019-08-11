@@ -8,7 +8,8 @@
       }
     },
     "action": {
-      "initial": 1
+      "initial": 1,
+      "compulsory": true
     },
     "bonus_action": {
       "initial": 1
@@ -23,8 +24,9 @@
       ],
       "value": 5
     },
-    "life":
-    {
+    "dodge_token": {},
+    "disengage_token": {},
+    "life": {
       "initial": 1,
       "value": 100
     },

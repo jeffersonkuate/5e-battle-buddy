@@ -16,11 +16,8 @@
                   }
                 }
               },
-              {
-                "property": {
-                  "value": "base_speed"
-                }
-              }
+              "quantity",
+              1
             ]
           },
           {
@@ -33,11 +30,8 @@
                   }
                 }
               },
-              {
-                "property": {
-                  "value": "1"
-                }
-              }
+              "quantity",
+              1
             ]
           },
           {
@@ -50,11 +44,8 @@
                   }
                 }
               },
-              {
-                "property": {
-                  "value": "1"
-                }
-              }
+              "quantity",
+              1
             ]
           },
           {
@@ -67,11 +58,8 @@
                   }
                 }
               },
-              {
-                "property": {
-                  "value": "1"
-                }
-              }
+              "quantity",
+              1
             ]
           }
         ]
@@ -93,6 +81,7 @@
                   }
                 }
               },
+              "quantity",
               {
                 "property": {
                   "value": "value"
@@ -107,59 +96,185 @@
       "hook": {
         "profile": "roll"
       },
-      "trigger": {
-        "conditions": [
-          {
-            "current_roll": {
-              "or": {
-                "arguments": [
-                  {
-                    "contains": {
-                      "arguments": [
-                        {
-                          "property": {
-                            "value": "attributes"
-                          }
-                        },
-                        "magic",
-                        "wisdom"
-                      ]
-                    }
-                  },
-                  {
-                    "contains": {
-                      "arguments": [
-                        {
-                          "property": {
-                            "value": "attributes"
-                          }
-                        },
-                        "magic",
-                        "charisma"
-                      ]
-                    }
-                  },
-                  {
-                    "contains": {
-                      "arguments": [
-                        {
-                          "property": {
-                            "value": "attributes"
-                          }
-                        },
-                        "magic",
-                        "intelligence"
-                      ]
-                    }
+      "conditions": [
+        {
+          "current_roll": {
+            "or": {
+              "arguments": [
+                {
+                  "contains": {
+                    "arguments": [
+                      {
+                        "property": {
+                          "value": "attributes"
+                        }
+                      },
+                      "magic",
+                      "wisdom"
+                    ]
                   }
-                ]
-              }
+                },
+                {
+                  "contains": {
+                    "arguments": [
+                      {
+                        "property": {
+                          "value": "attributes"
+                        }
+                      },
+                      "magic",
+                      "charisma"
+                    ]
+                  }
+                },
+                {
+                  "contains": {
+                    "arguments": [
+                      {
+                        "property": {
+                          "value": "attributes"
+                        }
+                      },
+                      "magic",
+                      "intelligence"
+                    ]
+                  }
+                }
+              ]
             }
           }
-        ],
-        "success_effects": [
+        }
+      ],
+      "trigger": {
+        "effects": [
           {
             "profile": "advantage"
+          }
+        ]
+      }
+    },
+    "dodge": {
+      "hook": {
+        "profile": "roll"
+      },
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "dodge_token": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        },
+        {
+          "current_roll": {
+            "or": {
+              "arguments": [
+                {
+                  "contains": {
+                    "arguments": [
+                      {
+                        "property": {
+                          "value": "attributes"
+                        }
+                      },
+                      "attack"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "disadvantage"
+          }
+        ]
+      }
+    },
+    "dodge_discard": {
+      "hook": {
+        "profile": "start_turn"
+      },
+      "trigger": {
+        "effects": [
+          {
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "dodge_token"
+                  }
+                }
+              },
+              "quantity",
+              0
+            ]
+          }
+        ]
+      }
+    },
+    "disengage": {
+      "hook": {
+        "profile": "movement"
+      },
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "disengage_token": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "disengage"
+          }
+        ]
+      }
+    },
+    "disengage_discard": {
+      "hook": {
+        "profile": "end_turn"
+      },
+      "trigger": {
+        "effects": [
+          {
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "disengage_token"
+                  }
+                }
+              },
+              "quantity",
+              0
+            ]
           }
         ]
       }

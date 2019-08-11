@@ -41,27 +41,20 @@
       "max_hp": 32,
       "abilities": [
         "basic",
-        "gnome_cunning"
-      ],
-      "resources": [
-        {
-          "name": "spell_slot",
-          "level": 1,
-          "quantity": 4
-        },
-        {
-          "name": "spell_slot",
-          "level": 2,
-          "quantity": 3
-        },
-        {
-          "name": "life",
-          "quantity": 1
-        }
+        "gnome_cunning",
+        "dodge",
+        "dodge_discard",
+        "disengage",
+        "disengage_discard"
       ],
       "skills": [
-        "rapier_attack",
-        "heavy_crossbow_attack"
+        "abstain",
+        "movement",
+        "dodge",
+        "rapier_action_attack",
+        "rapier_opportunity_attack",
+        "heavy_crossbow_attack",
+        "disengage"
       ]
     },
     "Super Goblin": {
@@ -76,20 +69,57 @@
       "max_hp": 25,
       "abilities": [
         "basic",
-        "nimble_escape"
-      ],
-      "resources": [
-        {
-          "name": "life",
-          "quantity": 1
-        }
+        "dodge",
+        "dodge_discard",
+        "disengage",
+        "disengage_discard"
       ],
       "skills": [
-        "goblin_scimitar_attack"
+        "abstain",
+        "movement",
+        "dodge",
+        "goblin_scimitar_action_attack",
+        "goblin_scimitar_opportunity_attack",
+        "disengage"
       ]
     }
   },
   "skills": {
+    "abstain": {
+      "profile": "abstain",
+      "targeting": {
+        "profile": "self"
+      },
+      "conditions": [
+        {
+          "any": {
+            "arguments": [
+              {
+                "map": {
+                  "arguments": [
+                    {
+                      "property": {
+                        "value": "resources"
+                      }
+                    },
+                    {
+                      "property": {
+                        "value": "compulsory"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": {
+          "profile": "end_turn"
+        }
+      }
+    },
     "movement": {
       "profile": "movement",
       "targeting": {
@@ -128,6 +158,85 @@
                   }
                 }
               },
+              "quantity",
+              1
+            ]
+          }
+        ]
+      }
+    },
+    "dodge": {
+      "profile": "dodge",
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "action": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "credit",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "dodge_token"
+                  }
+                }
+              },
+              "quantity",
+              1
+            ]
+          }
+        ]
+      }
+    },
+    "disengage": {
+      "profile": "disengage",
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "action": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "credit",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "disengage_token"
+                  }
+                }
+              },
+              "quantity",
               1
             ]
           }
@@ -244,6 +353,7 @@
                   }
                 }
               },
+              "quantity",
               1
             ]
           }
@@ -481,11 +591,8 @@
                   }
                 }
               },
-              {
-                "property": {
-                  "value": "base_speed"
-                }
-              }
+              "quantity",
+              1
             ]
           },
           {
@@ -498,11 +605,8 @@
                   }
                 }
               },
-              {
-                "property": {
-                  "value": "1"
-                }
-              }
+              "quantity",
+              1
             ]
           },
           {
@@ -515,11 +619,8 @@
                   }
                 }
               },
-              {
-                "property": {
-                  "value": "1"
-                }
-              }
+              "quantity",
+              1
             ]
           },
           {
@@ -532,11 +633,8 @@
                   }
                 }
               },
-              {
-                "property": {
-                  "value": "1"
-                }
-              }
+              "quantity",
+              1
             ]
           }
         ]
@@ -558,6 +656,7 @@
                   }
                 }
               },
+              "quantity",
               {
                 "property": {
                   "value": "value"
@@ -572,59 +671,185 @@
       "hook": {
         "profile": "roll"
       },
-      "trigger": {
-        "conditions": [
-          {
-            "current_roll": {
-              "or": {
-                "arguments": [
-                  {
-                    "contains": {
-                      "arguments": [
-                        {
-                          "property": {
-                            "value": "attributes"
-                          }
-                        },
-                        "magic",
-                        "wisdom"
-                      ]
-                    }
-                  },
-                  {
-                    "contains": {
-                      "arguments": [
-                        {
-                          "property": {
-                            "value": "attributes"
-                          }
-                        },
-                        "magic",
-                        "charisma"
-                      ]
-                    }
-                  },
-                  {
-                    "contains": {
-                      "arguments": [
-                        {
-                          "property": {
-                            "value": "attributes"
-                          }
-                        },
-                        "magic",
-                        "intelligence"
-                      ]
-                    }
+      "conditions": [
+        {
+          "current_roll": {
+            "or": {
+              "arguments": [
+                {
+                  "contains": {
+                    "arguments": [
+                      {
+                        "property": {
+                          "value": "attributes"
+                        }
+                      },
+                      "magic",
+                      "wisdom"
+                    ]
                   }
-                ]
-              }
+                },
+                {
+                  "contains": {
+                    "arguments": [
+                      {
+                        "property": {
+                          "value": "attributes"
+                        }
+                      },
+                      "magic",
+                      "charisma"
+                    ]
+                  }
+                },
+                {
+                  "contains": {
+                    "arguments": [
+                      {
+                        "property": {
+                          "value": "attributes"
+                        }
+                      },
+                      "magic",
+                      "intelligence"
+                    ]
+                  }
+                }
+              ]
             }
           }
-        ],
-        "success_effects": [
+        }
+      ],
+      "trigger": {
+        "effects": [
           {
             "profile": "advantage"
+          }
+        ]
+      }
+    },
+    "dodge": {
+      "hook": {
+        "profile": "roll"
+      },
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "dodge_token": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        },
+        {
+          "current_roll": {
+            "or": {
+              "arguments": [
+                {
+                  "contains": {
+                    "arguments": [
+                      {
+                        "property": {
+                          "value": "attributes"
+                        }
+                      },
+                      "attack"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "disadvantage"
+          }
+        ]
+      }
+    },
+    "dodge_discard": {
+      "hook": {
+        "profile": "start_turn"
+      },
+      "trigger": {
+        "effects": [
+          {
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "dodge_token"
+                  }
+                }
+              },
+              "quantity",
+              0
+            ]
+          }
+        ]
+      }
+    },
+    "disengage": {
+      "hook": {
+        "profile": "movement"
+      },
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "disengage_token": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "disengage"
+          }
+        ]
+      }
+    },
+    "disengage_discard": {
+      "hook": {
+        "profile": "end_turn"
+      },
+      "trigger": {
+        "effects": [
+          {
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "disengage_token"
+                  }
+                }
+              },
+              "quantity",
+              0
+            ]
           }
         ]
       }
@@ -639,7 +864,8 @@
       }
     },
     "action": {
-      "initial": 1
+      "initial": 1,
+      "compulsory": true
     },
     "bonus_action": {
       "initial": 1
@@ -654,6 +880,8 @@
       ],
       "value": 5
     },
+    "dodge_token": {},
+    "disengage_token": {},
     "life": {
       "initial": 1,
       "value": 100

@@ -1,5 +1,40 @@
 {
   "skills": {
+    "abstain": {
+      "profile": "abstain",
+      "targeting": {
+        "profile": "self"
+      },
+      "conditions": [
+        {
+          "any": {
+            "arguments": [
+              {
+                "map": {
+                  "arguments": [
+                    {
+                      "property": {
+                        "value": "resources"
+                      }
+                    },
+                    {
+                      "property": {
+                        "value": "compulsory"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": {
+          "profile": "end_turn"
+        }
+      }
+    },
     "movement": {
       "profile": "movement",
       "targeting": {
@@ -38,6 +73,85 @@
                   }
                 }
               },
+              "quantity",
+              1
+            ]
+          }
+        ]
+      }
+    },
+    "dodge": {
+      "profile": "dodge",
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "action": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "credit",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "dodge_token"
+                  }
+                }
+              },
+              "quantity",
+              1
+            ]
+          }
+        ]
+      }
+    },
+    "disengage": {
+      "profile": "disengage",
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "action": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "credit",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "disengage_token"
+                  }
+                }
+              },
+              "quantity",
               1
             ]
           }
@@ -154,6 +268,7 @@
                   }
                 }
               },
+              "quantity",
               1
             ]
           }

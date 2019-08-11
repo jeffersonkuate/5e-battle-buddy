@@ -38,7 +38,9 @@ GREATER_OR_EQUAL = 'greater_or_equal'
 LESS_OR_EQUAL = 'less_or_equal'
 MAXIMUM = 'max'
 MINIMUM = 'min'
+MAP = 'map'
 CONTAINS = 'contains'
+ANY = 'any'
 OR = 'or'
 AND = 'and'
 NOT = 'not'
@@ -100,17 +102,19 @@ class BasicContext(MutableMapping):
             LESS_OR_EQUAL: self.less_or_equal,
             MAXIMUM: self.maximum,
             MINIMUM: self.minimum,
+            MAP: self.func_map,
             CONTAINS: self.contains,
+            ANY: self.func_any,
             OR: self.func_or,
             AND: self.func_and,
             NOT: self.func_not,
-            GET: self.get,
+            GET: self.func_get,
             EVAL: self.eval,
             DIE_ROLL: self.roll
         }
 
     def context(self, expression):
-        return self.get(expression[VALUE])
+        return self.get(self.eval(expression[VALUE]))
 
     def add(self, expression):
         arguments = expression[ARGUMENTS]
@@ -190,6 +194,17 @@ class BasicContext(MutableMapping):
                 value = argument
         return value
 
+    def func_map(self, expression):
+        arguments = (expression[ARGUMENTS])
+        collection = self.eval(arguments[0])
+        func = arguments[1]
+
+        value = []
+        for item in collection:
+            value.append(item.eval(func))
+
+        return value
+
     def contains(self, expression):
         arguments = expression[ARGUMENTS]
         value = self.eval(arguments[0])
@@ -197,6 +212,13 @@ class BasicContext(MutableMapping):
             if self.eval(argument) not in value:
                 return False
         return True
+
+    def func_any(self, expression):
+        arguments = expression[ARGUMENTS]
+        for argument in arguments:
+            if self.eval(argument):
+                return True
+        return False
 
     def func_and(self, expression):
         arguments = expression[ARGUMENTS]
@@ -217,6 +239,10 @@ class BasicContext(MutableMapping):
     def func_not(self, expression):
         return not self.eval(expression[ARGUMENTS])
 
+    def func_get(self, expression):
+        arguments = expression[ARGUMENTS]
+        return self.eval(arguments[0]).get(self.eval(arguments[1]))
+
     def roll(self, expression):
         return self.die.roll(expression[self.eval(DIE_COUNT)], expression[self.eval(DIE_SIDES)])
 
@@ -231,6 +257,9 @@ class BasicContext(MutableMapping):
         else:
             return expression
 
+    def re_context(self, base):
+        return self.__new__(self.properties, base)
+
     def get(self, key):
         if hasattr(self, key):
             value = getattr(self, key)
@@ -238,9 +267,14 @@ class BasicContext(MutableMapping):
             value = self.properties[key]
 
         if not (value or self.base):
-            return self.base.get(key)
-        else:
-            return value
+            value = self.base.get(key)
+
+        if is_context(value):
+            value = self.re_context(value)
+        elif is_expression(value):
+            value = deep_copy(value).update(self.properties)
+
+        return value
 
     def set(self, key, value):
         if hasattr(self, key):
@@ -253,7 +287,7 @@ class BasicContext(MutableMapping):
 
 
 class Game(BasicContext):
-    def __init__(self, name=''):
+    def __init__(self, name='', base=None):
         self.strategy_factory = None
         self.alignments = []
         self.characters = []
@@ -262,13 +296,16 @@ class Game(BasicContext):
         self.resources = {}
         self.name = name
         self.board = None
-        super.__init__(self, {})
+        super.__init__(self, {}, base)
+
+    def re_context(self, base):
+        return self.__new__(self.properties, self.name, base)
 
 
 class Alignment(BasicContext):
-    def __init__(self, name=''):
+    def __init__(self, name='', base=None):
         self.name = name
-        super.__init__(self, {})
+        super.__init__(self, {}, base)
         self.function_map[INITIATIVE] = self.get_initiative
 
     def get_initiative(self, expression):
@@ -276,12 +313,15 @@ class Alignment(BasicContext):
         if initiative is None:
             initiative = self.roll(get_d20()) + self.eval(expression[BONUS])
             self.set(INITIATIVE, initiative)
+
+    def re_context(self, base):
+        return self.__new__(self.properties, self.name, base)
 
 
 class Character(BasicContext):
-    def __init__(self, name=''):
+    def __init__(self, name='', base=None):
         self.name = name
-        super.__init__(self, {})
+        super.__init__(self, {}, base)
         self.function_map[INITIATIVE] = self.get_initiative
 
     def get_initiative(self, expression):
@@ -290,12 +330,18 @@ class Character(BasicContext):
             initiative = self.roll(get_d20()) + self.eval(expression[BONUS])
             self.set(INITIATIVE, initiative)
 
+    def re_context(self, base):
+        return self.__new__(self.properties, self.name, base)
 
 class Board(BasicContext):
-    def __init__(self, width, height):
+    def __init__(self, width, height, base=None):
         self.width = width
         self.height = height
-        super.__init__(self, {})
+        super.__init__(self, {}, base)
+
+
+    def re_context(self, base):
+        return self.__new__(self.properties, self.width, self.height, base)
 
 
 class StrategyFactory:
@@ -427,7 +473,7 @@ def get_concretes(expression):
 
 
 def deep_fill(dictionary, update):
-    if is_dict(update):
+    if is_context(update):
         for key in update:
             value = dictionary[key]
             if value is None:
@@ -438,7 +484,7 @@ def deep_fill(dictionary, update):
 
 def deep_copy(dictionary):
     value = {}
-    if is_dict(dictionary):
+    if is_context(dictionary):
         for key in dictionary:
             value[key] = deep_copy(dictionary[key])
         return value
@@ -446,8 +492,12 @@ def deep_copy(dictionary):
         return dictionary
 
 
-def is_dict(dictionary):
-    return issubclass(dict, dictionary) or issubclass(BasicContext, dictionary)
+def is_context(context):
+    return issubclass(BasicContext, context)
+
+
+def is_expression(expression):
+    return issubclass(dict, expression)
 
 
 def main():
