@@ -254,9 +254,12 @@ class BasicContext(MutableMapping):
 
 class Game(BasicContext):
     def __init__(self, name=''):
+        self.strategy_factory = None
         self.alignments = []
         self.characters = []
         self.strategies = {}
+        self.abilities = {}
+        self.resources = {}
         self.name = name
         self.board = None
         super.__init__(self, {})
@@ -320,9 +323,32 @@ class Die:
         return count
 
 
-def unload_config(game, config):
-    pass
-    # create_strategy_factory(config[])
+def unload_config(config):
+    game = Game()
+
+    characters = get_concretes(config[CHARACTERS])
+    for character in characters:
+        create_character(game, characters[character])
+
+    skills = get_concretes(config[SKILLS])
+    for skill in skills:
+        create_skill(game, skills[skill])
+
+    abilities = get_concretes(config[ABILITIES])
+    for ability in abilities:
+        create_ability(game, abilities[ability])
+
+    resources = get_concretes(config[RESOURCES])
+    for resource in resources:
+        create_resource(game, resources[resource])
+
+    create_strategy_factory(game, config[STRATEGY])
+
+    games = get_concretes(config[GAMES])
+    create_game(game, games[config[GAME]])
+
+    return game
+
 
 def load_config():
     config = load('config.json')
@@ -337,23 +363,27 @@ def load(path):
     return json.load(open(path))
 
 
-def create_strategy_factory(expression, game):
+def create_game(game, expression):
     pass
 
 
-def create_skill(expression, game):
+def create_strategy_factory(game, expression):
     pass
 
 
-def create_ability(expression, game):
+def create_character(game, expression):
     pass
 
 
-def create_resource(expression, game):
+def create_skill(game, expression):
     pass
 
 
-def create_game(expression, game):
+def create_ability(game, expression):
+    pass
+
+
+def create_resource(game, expression):
     pass
 
 
@@ -424,8 +454,7 @@ def main():
     display = Display()
     config = load_config()
     display.print(json.dumps(config))
-    game = Game()
-    unload_config(game, config)
+    game = unload_config(config)
 
     for i in range(config["strategy"]["optimization_cycles"]):
         for alignment in game.alignments:
