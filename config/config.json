@@ -1,7 +1,6 @@
 {
   "game": "1v1",
   "strategy": {
-    "optimization_cycles": 10,
     "generations": 100,
     "nodes_per_trial": 20,
     "trials_per_generation": 50,

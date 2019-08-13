@@ -3,20 +3,32 @@ import json
 import re
 import random
 from collections.abc import MutableMapping
-
 from display import Display
 
 
+PROMPT_START = "Enter q to quit, i for info, and enter to start: "
+PROMPT_YES_NO = "Enter Y or N: "
+PROMPT_NUMERIC = "Enter a number: "
+PROMPT_ENTER = "Press Enter to Continue: "
+
+INVALID = "INPUT INVALID!"
+
 REGEX_LONG_PATH = '/'
+REGEX_QUIT = 'q$|quit$'
+REGEX_INFO = 'i$|info$'
+REGEX_START = 'q$|i$|quit$|info$|$'
+REGEX_BLANK = '$'
+REGEX_ALL = '.*'
 
 GAME = 'game'
 GAMES = 'games'
-STRATEGY = 'strategy'
 CONFIG = 'config'
 CHARACTERS = 'characters'
 SKILLS = 'skills'
 ABILITIES = 'abilities'
 RESOURCES = 'resources'
+STRATEGY = 'strategy'
+OPTIMIZATION_CYCLES = 'optimization_cycles'
 
 ARGUMENTS = 'arguments'
 CONDITION = 'condition'
@@ -291,7 +303,6 @@ class Game(BasicContext):
         self.strategy_factory = None
         self.alignments = []
         self.characters = []
-        self.strategies = {}
         self.abilities = {}
         self.resources = {}
         self.name = name
@@ -300,6 +311,9 @@ class Game(BasicContext):
 
     def re_context(self, base):
         return self.__new__(self.properties, self.name, base)
+
+    def optimize(self, strategy):
+        pass
 
 
 class Alignment(BasicContext):
@@ -333,20 +347,24 @@ class Character(BasicContext):
     def re_context(self, base):
         return self.__new__(self.properties, self.name, base)
 
+
 class Board(BasicContext):
     def __init__(self, width, height, base=None):
         self.width = width
         self.height = height
         super.__init__(self, {}, base)
 
-
     def re_context(self, base):
         return self.__new__(self.properties, self.width, self.height, base)
 
 
-class StrategyFactory:
+class StrategyManager:
     def __init__(self, game, expression):
         self.game = game
+        self.strategies = {}
+
+    def optimize(self, strategy):
+        pass
 
 
 class Strategy:
@@ -388,12 +406,10 @@ def unload_config(config):
     for resource in resources:
         create_resource(game, resources[resource])
 
-    create_strategy_factory(game, config[STRATEGY])
-
     games = get_concretes(config[GAMES])
     create_game(game, games[config[GAME]])
 
-    return game
+    return create_strategy_manager(game, config[STRATEGY])
 
 
 def load_config():
@@ -413,8 +429,10 @@ def create_game(game, expression):
     pass
 
 
-def create_strategy_factory(game, expression):
-    pass
+# TODO
+def create_strategy_manager(game, expression):
+    manager = StrategyManager()
+    return manager
 
 
 def create_character(game, expression):
@@ -433,12 +451,29 @@ def create_resource(game, expression):
     pass
 
 
+def get_d20():
+    return {DIE_COUNT: 1, DIE_SIDES: 20}
+
+
+def report_strategies(manager, display):
+    for strategy_name in manager.strategies:
+        report_strategy(manager.strategies[strategy_name], display)
+
+
 def report_strategy(strategy, display):
     pass
 
 
-def get_d20():
-    return {DIE_COUNT: 1, DIE_SIDES: 20}
+def checked_input(display, string='', prompt='', reg=REGEX_ALL):
+    user_input = display.input(string, prompt)
+    while not match(reg, user_input):
+        display_invalid(display)
+        user_input = display.input(string, prompt)
+    return user_input
+
+
+def display_invalid(display):
+    display.input(INVALID, PROMPT_ENTER)
 
 
 def search(reg, string):
@@ -504,12 +539,33 @@ def main():
     display = Display()
     config = load_config()
     display.print(json.dumps(config))
-    game = unload_config(config)
+    manager = unload_config(config)
+    optimization_count = 0
 
-    for i in range(config["strategy"]["optimization_cycles"]):
-        for alignment in game.alignments:
-            game.strategies[alignment.name].optimize()
-            report_strategy(game, display)
+    while True:
+        user_input = display.input("There have been " + str(optimization_count)
+                                   + " optimization(s) made.\n"
+                                   + "Enter q to quit, i for info, the name of a strategy to optimize it,"
+                                   + "or nothing to optimize all strategies")
+
+        if match(REGEX_QUIT, user_input):
+            quit(1)
+        elif match(REGEX_INFO, user_input):
+            report_strategies(manager, display)
+        elif match(REGEX_BLANK, user_input):
+            for strategy_name in manager.strategies:
+                strategy = manager.strategies[strategy_name]
+                manager.optimize(strategy)
+                optimization_count += 1
+                report_strategy(strategy, display)
+        else:
+            strategy = manager.strategies[user_input]
+            if strategy is None:
+                display_invalid(display)
+            else:
+                manager.optimize(strategy)
+                optimization_count += 1
+                report_strategy(strategy, display)
 
 
 if __name__ == '__main__':
