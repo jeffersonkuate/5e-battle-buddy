@@ -2,6 +2,7 @@ import os
 import json
 import re
 import random
+import math
 from collections.abc import MutableMapping
 from display import Display
 
@@ -29,9 +30,8 @@ ABILITIES = 'abilities'
 RESOURCES = 'resources'
 STRATEGY = 'strategy'
 
-GENERATION_COUNT = 'generation_count'
 SIMULATIONS_PER_GENERATION = 'simulations_per_generation'
-NOVEL_strategy_COUNT = 'novel_strategy_count'
+CLONED_strategy_COUNT = 'cloned_strategy_count'
 MUTATED_strategy_COUNT = 'mutated_strategy_count'
 MERGED_strategy_COUNT = 'merged_strategy_count'
 MAX_STRATEGY_COMPLEXITY = 'max_strategy_complexity'
@@ -370,9 +370,8 @@ class StrategyManager:
     def __init__(self, game, expression):
         self.game = game
         self.strategies = {}
-        self.generation_count = expression[GENERATION_COUNT]
         self.simulations_per_generation = expression[SIMULATIONS_PER_GENERATION]
-        self.novel_strategy_count = expression[NOVEL_strategy_COUNT]
+        self.cloned_strategy_count = expression[CLONED_strategy_COUNT]
         self.mutated_strategy_count = expression[MUTATED_strategy_COUNT]
         self.merged_strategy_count = expression[MERGED_strategy_COUNT]
         self.max_strategy_complexity = expression[MAX_STRATEGY_COMPLEXITY]
@@ -389,21 +388,59 @@ class StrategyManager:
         mutateable_strategies = []
         mergeable_strategies = []
 
+        last_fitness = 0
+        best_strategy = None
         strategies = []
+        while (best_strategy is None
+               or (((last_fitness*self.fitness_improvement_threshold) + last_fitness) < best_strategy.fitness)):
+            last_fitness = best_strategy.fitness
 
-        for i in range(self.novel_strategy_count):
-            strategies.append(Strategy(self.game))
-        random.shuffle(mergeable_strategies)
-        for i in range(len(mergeable_strategies)):
-            strategy1 = mergeable_strategies.pop()
-            strategy2 = mergeable_strategies.pop()
-            strategies.append(self.merge(strategy1, strategy2))
+            for i in range(self.cloned_strategy_count):
+                strategies.append(Strategy(self.game, strategy_name))
+            random.shuffle(mergeable_strategies)
+            while len(cloneable_strategies) > 0:
+                strategies.append(cloneable_strategies.pop())
+            while len(mutateable_strategies) > 0:
+                strategies.append(self.mutate(mutateable_strategies.pop()))
+            while len(mergeable_strategies) > 1:
+                strategy1 = mergeable_strategies.pop()
+                strategy2 = mergeable_strategies.pop()
+                strategies.append(self.merge(strategy1, strategy2))
+                
+            for strategy in strategies:
+                fitness = 0
+                for i in range(self.simulations_per_generation):
+                    fitness += self.game.simulate(strategy)
+                strategy.fitness = fitness/self.simulations_per_generation
 
+                cloneable_strategies.append(strategy)
+                mutateable_strategies.append(strategy)
+                mergeable_strategies.append(strategy)
+
+                if strategy.fitness > best_strategy.fitness:
+                    best_strategy = strategy
+
+        self.strategies[strategy_name] = best_strategy
+
+
+    def trim_cloneable(self, strategies):
+        return self.trim(strategies, self.cloned_strategy_count)
+
+    def trim_mutateable(self, strategies):
+        return self.trim(strategies, self.mutated_strategy_count)
+
+    def trim_mergeable(self, strategies):
+        return self.trim(strategies, self.merged_strategy_count)
+
+    def trim(self, strategies, threshold):
+        pass
 
 
 class Strategy:
-    def __init__(self, game):
+    def __init__(self, game, name):
         self.game = game
+        self.name = name
+        self.fitness = 0,
         self.nodes = {}
 
     def optimize(self, alignment):
