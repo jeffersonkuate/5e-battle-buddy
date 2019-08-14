@@ -28,7 +28,15 @@ SKILLS = 'skills'
 ABILITIES = 'abilities'
 RESOURCES = 'resources'
 STRATEGY = 'strategy'
-OPTIMIZATION_CYCLES = 'optimization_cycles'
+
+GENERATION_COUNT = 'generation_count'
+SIMULATIONS_PER_GENERATION = 'simulations_per_generation'
+NOVEL_strategy_COUNT = 'novel_strategy_count'
+MUTATED_strategy_COUNT = 'mutated_strategy_count'
+MERGED_strategy_COUNT = 'merged_strategy_count'
+MAX_STRATEGY_COMPLEXITY = 'max_strategy_complexity'
+FITNESS_IMPROVEMENT_THRESHOLD = 'fitness_improvement_threshold'
+STRATEGY_GROUPING = 'strategy_grouping'
 
 ARGUMENTS = 'arguments'
 CONDITION = 'condition'
@@ -312,7 +320,7 @@ class Game(BasicContext):
     def re_context(self, base):
         return self.__new__(self.properties, self.name, base)
 
-    def optimize(self, strategy):
+    def simulate(self):
         pass
 
 
@@ -362,9 +370,35 @@ class StrategyManager:
     def __init__(self, game, expression):
         self.game = game
         self.strategies = {}
+        self.generation_count = expression[GENERATION_COUNT]
+        self.simulations_per_generation = expression[SIMULATIONS_PER_GENERATION]
+        self.novel_strategy_count = expression[NOVEL_strategy_COUNT]
+        self.mutated_strategy_count = expression[MUTATED_strategy_COUNT]
+        self.merged_strategy_count = expression[MERGED_strategy_COUNT]
+        self.max_strategy_complexity = expression[MAX_STRATEGY_COMPLEXITY]
+        self.fitness_improvement_threshold = expression[FITNESS_IMPROVEMENT_THRESHOLD]
 
-    def optimize(self, strategy):
+    def merge(self, strategy1, strategy2):
         pass
+
+    def mutate(self, strategy):
+        pass
+
+    def optimize(self, strategy_name):
+        cloneable_strategies = []
+        mutateable_strategies = []
+        mergeable_strategies = []
+
+        strategies = []
+
+        for i in range(self.novel_strategy_count):
+            strategies.append(Strategy(self.game))
+        random.shuffle(mergeable_strategies)
+        for i in range(len(mergeable_strategies)):
+            strategy1 = mergeable_strategies.pop()
+            strategy2 = mergeable_strategies.pop()
+            strategies.append(self.merge(strategy1, strategy2))
+
 
 
 class Strategy:
@@ -373,6 +407,11 @@ class Strategy:
         self.nodes = {}
 
     def optimize(self, alignment):
+        pass
+
+
+class Node:
+    def act(self, action_list):
         pass
 
 
@@ -555,7 +594,7 @@ def main():
         elif match(REGEX_BLANK, user_input):
             for strategy_name in manager.strategies:
                 strategy = manager.strategies[strategy_name]
-                manager.optimize(strategy)
+                manager.optimize(strategy.name)
                 optimization_count += 1
                 report_strategy(strategy, display)
         else:
@@ -563,7 +602,7 @@ def main():
             if strategy is None:
                 display_invalid(display)
             else:
-                manager.optimize(strategy)
+                manager.optimize(strategy.name)
                 optimization_count += 1
                 report_strategy(strategy, display)
 

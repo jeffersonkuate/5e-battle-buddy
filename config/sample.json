@@ -5,9 +5,9 @@
     "generations": 100,
     "nodes_per_trial": 20,
     "trials_per_generation": 50,
-    "novel_node_coefficient": 0.5,
-    "mutated_node_coefficient": 0.1,
-    "merged_node_coefficient": 0.2,
+    "novel_node_count": 50,
+    "mutated_node_count": 10,
+    "merged_node_count": 20,
     "strategy_grouping": {
       "property": {
         "value": "alignment"

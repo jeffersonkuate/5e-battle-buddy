@@ -1,12 +1,14 @@
 {
   "game": "1v1",
   "strategy": {
-    "generations": 100,
-    "nodes_per_trial": 20,
-    "trials_per_generation": 50,
-    "novel_node_coefficient": 0.5,
-    "mutated_node_coefficient": 0.1,
-    "merged_node_coefficient": 0.2,
+    "generation_count": 100,
+    "simulations_per_generation": 50,
+    "novel_strategy_count": 50,
+    "mutated_strategy_count": 10,
+    "merged_strategy_count": 20,
+    "max_strategy_complexity": 20,
+    "mutation_coefficient": 0.005,
+    "fitness_improvement_threshold": 0.005,
     "strategy_grouping": {
       "property": {
         "value": "alignment"
