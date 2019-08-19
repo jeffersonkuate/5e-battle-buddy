@@ -30,6 +30,9 @@
       "initial": 1,
       "value": 100
     },
+    "hit_point": {
+      "value": 2
+    },
     "mischief": {
       "value": 1
     }

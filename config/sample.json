@@ -1,13 +1,13 @@
 {
   "game": "1v1",
   "strategy": {
-    "optimization_cycles": 10,
-    "generations": 100,
-    "nodes_per_trial": 20,
-    "trials_per_generation": 50,
-    "novel_node_count": 50,
-    "mutated_node_count": 10,
-    "merged_node_count": 20,
+    "simulations_per_generation": 50,
+    "cloned_strategy_count": 50,
+    "mutated_strategy_count": 10,
+    "merged_strategy_count": 20,
+    "max_strategy_complexity": 20,
+    "mutation_coefficient": 0.005,
+    "fitness_improvement_threshold": 0.005,
     "strategy_grouping": {
       "property": {
         "value": "alignment"
@@ -803,7 +803,8 @@
     },
     "disengage": {
       "hook": {
-        "profile": "movement"
+        "profile": "threatened_zone_exit",
+        "priority": -1
       },
       "conditions": [
         {
@@ -853,6 +854,50 @@
           }
         ]
       }
+    },
+    "mortal": {
+      "hook": {
+        "profile": "start_turn"
+      },
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "hit_point": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "life"
+                  }
+                }
+              },
+              "quantity",
+              0
+            ]
+          },
+          {
+            "profile": "remove_from_play"
+          }
+        ]
+      }
     }
   },
   "resources": {
@@ -885,6 +930,9 @@
     "life": {
       "initial": 1,
       "value": 100
+    },
+    "hit_point": {
+      "value": 2
     },
     "mischief": {
       "value": 1

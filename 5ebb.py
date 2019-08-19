@@ -6,7 +6,7 @@ import math
 from collections.abc import MutableMapping
 from display import Display
 
-
+# Prompts
 PROMPT_START = "Enter q to quit, i for info, and enter to start: "
 PROMPT_YES_NO = "Enter Y or N: "
 PROMPT_NUMERIC = "Enter a number: "
@@ -14,6 +14,7 @@ PROMPT_ENTER = "Press Enter to Continue: "
 
 INVALID = "INPUT INVALID!"
 
+# Regular Expressions
 REGEX_LONG_PATH = '/'
 REGEX_QUIT = 'q$|quit$'
 REGEX_INFO = 'i$|info$'
@@ -21,6 +22,7 @@ REGEX_START = 'q$|i$|quit$|info$|$'
 REGEX_BLANK = '$'
 REGEX_ALL = '.*'
 
+# Top-level Config Properties
 GAME = 'game'
 GAMES = 'games'
 CONFIG = 'config'
@@ -30,16 +32,19 @@ ABILITIES = 'abilities'
 RESOURCES = 'resources'
 STRATEGY = 'strategy'
 
+# Strategy Manager Properties
 SIMULATIONS_PER_GENERATION = 'simulations_per_generation'
-CLONED_strategy_COUNT = 'cloned_strategy_count'
-MUTATED_strategy_COUNT = 'mutated_strategy_count'
-MERGED_strategy_COUNT = 'merged_strategy_count'
+CLONED_STRATEGY_COUNT = 'cloned_strategy_count'
+MUTATED_STRATEGY_COUNT = 'mutated_strategy_count'
+MERGED_STRATEGY_COUNT = 'merged_strategy_count'
 MAX_STRATEGY_COMPLEXITY = 'max_strategy_complexity'
 FITNESS_IMPROVEMENT_THRESHOLD = 'fitness_improvement_threshold'
 STRATEGY_GROUPING = 'strategy_grouping'
 
+# Key 5ebb-JSON Properties
+PROFILE = 'profile'
 ARGUMENTS = 'arguments'
-CONDITION = 'condition'
+CONDITIONS = 'conditions'
 EFFECTS = 'effects'
 VALUE = 'value'
 NAME = 'name'
@@ -47,7 +52,9 @@ BONUS = 'bonus'
 CONTEXT = 'property'
 PROTOTYPE = 'prototype'
 PROTOTYPES = 'prototypes'
+TRIGGER = 'trigger'
 
+# Basic Functions
 ADDITION = 'addition'
 SUBTRACTION = 'subtraction'
 MULTIPLICATION = 'multiplication'
@@ -67,6 +74,51 @@ NOT = 'not'
 GET = 'get'
 EVAL = 'eval'
 
+# Die
+DIE_ROLL = 'roll'
+DIE_COUNT = 'count'
+DIE_SIDES = 'sides'
+
+# Hooks
+START_OF_TURN = 'start_turn'
+END_OF_TURN = 'end_turn'
+ROLL = 'roll'
+MOVEMENT = 'movement'
+THREATENED_ZONE_ENTRANCE = 'threatened_zone_entrance'
+THREATENED_ZONE_EXIT = 'threatened_zone_exit'
+DAMAGE_DONE = 'damage_done'
+DAMAGE_TAKEN = 'damage_taken'
+
+# Affinities
+HOSTILE = 'hostile'
+FRIENDLY = 'friendly'
+SELF = 'self'
+
+# D&D Skills
+ABSTAIN = 'abstain'
+MOVEMENT_SKILL = 'movement'
+DODGE = 'dodge'
+ATTACK = 'attack'
+ACTION_ATTACK = 'action_attack'
+OPPORTUNITY_ATTACK = 'opportunity_attack'
+DISENGAGE = 'disengage'
+
+# D&D Targeting
+SELF_TARGET = 'self'
+SINGLE_TARGET = 'single_target'
+RANGED_TARGET = 'ranged_attack'
+
+# D&D Effects
+END_TURN = 'end_turn'
+MOVEMENT_EFFECT = 'movement'
+SET = 'set'
+CREDIT = 'credit'
+DEBIT = 'debit'
+ADVANTAGE = 'advantage'
+DISADVANTAGE = 'disadvantage'
+REMOVE_FROM_PLAY = 'remove_from_play'
+
+# D&D Properties
 STRENGTH = 'strength'
 DEXTERITY = 'dexterity'
 CONSTITUTION = 'constitution'
@@ -84,10 +136,6 @@ INITIATIVE = 'initiative'
 INITIATIVE_BONUS = 'initiative_bonus'
 
 RESOURCE_LEVEL = 'level'
-
-DIE_ROLL = 'roll'
-DIE_COUNT = 'count'
-DIE_SIDES = 'sides'
 
 
 class BasicContext(MutableMapping):
@@ -324,6 +372,11 @@ class Game(BasicContext):
         pass
 
 
+class MatchContext(BasicContext):
+    def __init__(self):
+        pass
+
+
 class Alignment(BasicContext):
     def __init__(self, name='', base=None):
         self.name = name
@@ -371,9 +424,9 @@ class StrategyManager:
         self.game = game
         self.strategies = {}
         self.simulations_per_generation = expression[SIMULATIONS_PER_GENERATION]
-        self.cloned_strategy_count = expression[CLONED_strategy_COUNT]
-        self.mutated_strategy_count = expression[MUTATED_strategy_COUNT]
-        self.merged_strategy_count = expression[MERGED_strategy_COUNT]
+        self.cloned_strategy_count = expression[CLONED_STRATEGY_COUNT]
+        self.mutated_strategy_count = expression[MUTATED_STRATEGY_COUNT]
+        self.merged_strategy_count = expression[MERGED_STRATEGY_COUNT]
         self.max_strategy_complexity = expression[MAX_STRATEGY_COMPLEXITY]
         self.fitness_improvement_threshold = expression[FITNESS_IMPROVEMENT_THRESHOLD]
 
@@ -392,7 +445,7 @@ class StrategyManager:
         best_strategy = None
         strategies = []
         while (best_strategy is None
-               or (((last_fitness*self.fitness_improvement_threshold) + last_fitness) < best_strategy.fitness)):
+               or (((last_fitness * self.fitness_improvement_threshold) + last_fitness) < best_strategy.fitness)):
             last_fitness = best_strategy.fitness
 
             for i in range(self.cloned_strategy_count):
@@ -406,12 +459,13 @@ class StrategyManager:
                 strategy1 = mergeable_strategies.pop()
                 strategy2 = mergeable_strategies.pop()
                 strategies.append(self.merge(strategy1, strategy2))
-                
+
             for strategy in strategies:
                 fitness = 0
                 for i in range(self.simulations_per_generation):
-                    fitness += self.game.simulate(strategy)
-                strategy.fitness = fitness/self.simulations_per_generation
+                    self.strategies[strategy_name] = strategy
+                    fitness += self.game.simulate()[strategy_name]
+                strategy.fitness = fitness / self.simulations_per_generation
 
                 cloneable_strategies.append(strategy)
                 mutateable_strategies.append(strategy)
@@ -421,7 +475,6 @@ class StrategyManager:
                     best_strategy = strategy
 
         self.strategies[strategy_name] = best_strategy
-
 
     def trim_cloneable(self, strategies):
         return self.trim(strategies, self.cloned_strategy_count)

@@ -228,7 +228,8 @@
     },
     "disengage": {
       "hook": {
-        "profile": "movement"
+        "profile": "threatened_zone_exit",
+        "priority": -1
       },
       "conditions": [
         {
@@ -275,6 +276,50 @@
               "quantity",
               0
             ]
+          }
+        ]
+      }
+    },
+    "mortal": {
+      "hook": {
+        "profile": "start_turn"
+      },
+      "conditions": [
+        {
+          "greater_or_equal": {
+            "arguments": [
+              {
+                "resources": {
+                  "hit_point": {
+                    "property": {
+                      "value": "quantity"
+                    }
+                  }
+                }
+              },
+              1
+            ]
+          }
+        }
+      ],
+      "trigger": {
+        "effects": [
+          {
+            "profile": "set",
+            "arguments": [
+              {
+                "resources": {
+                  "property": {
+                    "value": "life"
+                  }
+                }
+              },
+              "quantity",
+              0
+            ]
+          },
+          {
+            "profile": "remove_from_play"
           }
         ]
       }
