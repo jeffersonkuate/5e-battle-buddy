@@ -1,6 +1,14 @@
 {
   "abilities": {
-    "basic": {
+    "basic": [
+      "basic_turn",
+      "dodge",
+      "dodge_discard",
+      "disengage",
+      "disengage_discard",
+      "mortal"
+    ],
+    "basic_turn": {
       "hook": {
         "profile": "start_turn"
       },

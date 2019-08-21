@@ -34,6 +34,7 @@ STRATEGY = 'strategy'
 
 # Strategy Manager Properties
 SIMULATIONS_PER_GENERATION = 'simulations_per_generation'
+NOVEL_STRATEGY_COUNT = 'novel_strategy_count'
 CLONED_STRATEGY_COUNT = 'cloned_strategy_count'
 MUTATED_STRATEGY_COUNT = 'mutated_strategy_count'
 MERGED_STRATEGY_COUNT = 'merged_strategy_count'
@@ -326,7 +327,7 @@ class BasicContext(MutableMapping):
             return expression
 
     def re_context(self, base):
-        return self.__new__(self.properties, base)
+        return type(self)(self.properties, base)
 
     def get(self, key):
         if hasattr(self, key):
@@ -354,33 +355,66 @@ class BasicContext(MutableMapping):
             self.base.set(key, value)
 
 
-class Game(BasicContext):
+class NamedContext(BasicContext):
     def __init__(self, name='', base=None):
-        self.strategy_factory = None
+        self.name = name
+        super().__init__({}, base)
+
+    def re_context(self, base):
+        return type(self)(self.properties, self.name, base)
+
+
+class Game(NamedContext):
+    def __init__(self, name='', base=None):
+        self.strategy_manager = None
         self.alignments = []
         self.characters = []
         self.abilities = {}
         self.resources = {}
-        self.name = name
         self.board = None
-        super.__init__(self, {}, base)
+        super().__init__(name, base)
 
-    def re_context(self, base):
-        return self.__new__(self.properties, self.name, base)
-
-    def simulate(self):
+    def get_match(self):
         pass
 
 
 class MatchContext(BasicContext):
     def __init__(self):
+        self.game = None
+
+    def simulate(self):
+        possible_actions = self.get_actions()
+        while possible_actions is not None:
+            action = self.game.strategy_manager.choose_action(possible_actions)
+            self.act(action)
+            possible_actions = self.get_actions()
+
+    def get_fitness(self, strategy_name):
+        pass
+
+    def get_actions(self):
+        pass
+
+    def act(self, action):
         pass
 
 
-class Alignment(BasicContext):
+class MatchCharacter(BasicContext):
+    def __init__(self):
+        pass
+
+
+class MatchResourceSet(BasicContext):
+    pass
+
+
+class MatchResource(BasicContext):
+    pass
+
+
+class Alignment(NamedContext):
     def __init__(self, name='', base=None):
-        self.name = name
-        super.__init__(self, {}, base)
+        super().__init__(name, base)
         self.function_map[INITIATIVE] = self.get_initiative
 
     def get_initiative(self, expression):
@@ -389,14 +423,10 @@ class Alignment(BasicContext):
             initiative = self.roll(get_d20()) + self.eval(expression[BONUS])
             self.set(INITIATIVE, initiative)
 
-    def re_context(self, base):
-        return self.__new__(self.properties, self.name, base)
 
-
-class Character(BasicContext):
+class Character(NamedContext):
     def __init__(self, name='', base=None):
-        self.name = name
-        super.__init__(self, {}, base)
+        super().__init__(name, base)
         self.function_map[INITIATIVE] = self.get_initiative
 
     def get_initiative(self, expression):
@@ -404,19 +434,16 @@ class Character(BasicContext):
         if initiative is None:
             initiative = self.roll(get_d20()) + self.eval(expression[BONUS])
             self.set(INITIATIVE, initiative)
-
-    def re_context(self, base):
-        return self.__new__(self.properties, self.name, base)
 
 
 class Board(BasicContext):
     def __init__(self, width, height, base=None):
         self.width = width
         self.height = height
-        super.__init__(self, {}, base)
+        super().__init__({}, base)
 
     def re_context(self, base):
-        return self.__new__(self.properties, self.width, self.height, base)
+        return type(self)(self.properties, self.width, self.height, base)
 
 
 class StrategyManager:
@@ -424,6 +451,7 @@ class StrategyManager:
         self.game = game
         self.strategies = {}
         self.simulations_per_generation = expression[SIMULATIONS_PER_GENERATION]
+        self.novel_strategy_count = expression[NOVEL_STRATEGY_COUNT]
         self.cloned_strategy_count = expression[CLONED_STRATEGY_COUNT]
         self.mutated_strategy_count = expression[MUTATED_STRATEGY_COUNT]
         self.merged_strategy_count = expression[MERGED_STRATEGY_COUNT]
@@ -448,9 +476,8 @@ class StrategyManager:
                or (((last_fitness * self.fitness_improvement_threshold) + last_fitness) < best_strategy.fitness)):
             last_fitness = best_strategy.fitness
 
-            for i in range(self.cloned_strategy_count):
+            for i in range(self.novel_strategy_count):
                 strategies.append(Strategy(self.game, strategy_name))
-            random.shuffle(mergeable_strategies)
             while len(cloneable_strategies) > 0:
                 strategies.append(cloneable_strategies.pop())
             while len(mutateable_strategies) > 0:
@@ -464,7 +491,9 @@ class StrategyManager:
                 fitness = 0
                 for i in range(self.simulations_per_generation):
                     self.strategies[strategy_name] = strategy
-                    fitness += self.game.simulate()[strategy_name]
+                    match_context = self.game.get_match()
+                    match_context.simulate()
+                    fitness += match_context.get_fitness(strategy_name)
                 strategy.fitness = fitness / self.simulations_per_generation
 
                 cloneable_strategies.append(strategy)
@@ -473,6 +502,11 @@ class StrategyManager:
 
                 if strategy.fitness > best_strategy.fitness:
                     best_strategy = strategy
+
+            self.trim_cloneable(cloneable_strategies)
+            self.trim_mutateable(mutateable_strategies)
+            self.trim_mergeable(mergeable_strategies)
+            random.shuffle(mergeable_strategies)
 
         self.strategies[strategy_name] = best_strategy
 
@@ -486,6 +520,9 @@ class StrategyManager:
         return self.trim(strategies, self.merged_strategy_count)
 
     def trim(self, strategies, threshold):
+        pass
+
+    def choose_action(self, actions):
         pass
 
 
@@ -503,6 +540,10 @@ class Strategy:
 class Node:
     def act(self, action_list):
         pass
+
+
+class Action:
+    pass
 
 
 class Die:
@@ -544,7 +585,7 @@ def unload_config(config):
 def load_config():
     config = load('config.json')
     for file in config['configs']:
-        config.update(load(file))
+        deep_fill(config, load(file))
     return config
 
 
@@ -560,7 +601,7 @@ def create_game(game, expression):
 
 # TODO
 def create_strategy_manager(game, expression):
-    manager = StrategyManager()
+    manager = StrategyManager(game, expression)
     return manager
 
 
@@ -639,29 +680,29 @@ def get_concretes(expression):
 def deep_fill(dictionary, update):
     if is_context(update):
         for key in update:
-            value = dictionary[key]
+            value = dictionary.get(key)
             if value is None:
-                dictionary[key] = deep_copy(update[key])
+                dictionary[key] = deep_copy(update.get(key))
             else:
-                deep_fill(dictionary[key], update[key])
+                deep_fill(dictionary[key], update.get(key))
 
 
 def deep_copy(dictionary):
     value = {}
     if is_context(dictionary):
         for key in dictionary:
-            value[key] = deep_copy(dictionary[key])
+            value[key] = deep_copy(dictionary.get(key))
         return value
     else:
         return dictionary
 
 
 def is_context(context):
-    return issubclass(BasicContext, context)
+    return issubclass(type(context), BasicContext) or is_expression(context)
 
 
 def is_expression(expression):
-    return issubclass(dict, expression)
+    return issubclass(type(expression), dict)
 
 
 def main():

@@ -2,6 +2,7 @@
   "game": "1v1",
   "strategy": {
     "simulations_per_generation": 50,
+    "novel_strategy_count": 50,
     "cloned_strategy_count": 50,
     "mutated_strategy_count": 10,
     "merged_strategy_count": 20,

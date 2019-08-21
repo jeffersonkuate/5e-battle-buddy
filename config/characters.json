@@ -19,11 +19,7 @@
       "max_hp": 32,
       "abilities": [
         "basic",
-        "gnome_cunning",
-        "dodge",
-        "dodge_discard",
-        "disengage",
-        "disengage_discard"
+        "gnome_cunning"
       ],
       "skills": [
         "abstain",
@@ -47,10 +43,7 @@
       "max_hp": 25,
       "abilities": [
         "basic",
-        "dodge",
-        "dodge_discard",
-        "disengage",
-        "disengage_discard"
+        "mischievous"
       ],
       "skills": [
         "abstain",
