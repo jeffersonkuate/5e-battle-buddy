@@ -18,12 +18,6 @@
       "name": "reaction",
       "initial": 1
     },
-    "spell_slot": {
-      "properties": [
-        "level"
-      ],
-      "value": 5
-    },
     "dodge_token": {},
     "disengage_token": {},
     "life": {

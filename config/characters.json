@@ -29,6 +29,14 @@
         "rapier_opportunity_attack",
         "heavy_crossbow_attack",
         "disengage"
+      ],
+      "resources": [
+        "movement",
+        "action",
+        "bonus_action",
+        "reaction",
+        "life",
+        "hit_point"
       ]
     },
     "Super Goblin": {
@@ -52,6 +60,14 @@
         "goblin_scimitar_action_attack",
         "goblin_scimitar_opportunity_attack",
         "disengage"
+      ],
+      "resources": [
+        "movement",
+        "action",
+        "bonus_action",
+        "reaction",
+        "life",
+        "hit_point"
       ]
     }
   }

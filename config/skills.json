@@ -38,7 +38,7 @@
     "movement": {
       "profile": "movement",
       "targeting": {
-        "profile": "single_target"
+        "profile": "terrain_target"
       },
       "conditions": [
         {

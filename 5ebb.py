@@ -2,8 +2,7 @@ import os
 import json
 import re
 import random
-import math
-from collections.abc import MutableMapping
+from collections.abc import MutableMapping, MutableSequence
 from display import Display
 
 # Prompts
@@ -23,8 +22,8 @@ REGEX_BLANK = '$'
 REGEX_ALL = '.*'
 
 # Top-level Config Properties
-GAME = 'game'
-GAMES = 'games'
+MATCH = 'game'
+MATCHES = 'games'
 CONFIG = 'config'
 CHARACTERS = 'characters'
 SKILLS = 'skills'
@@ -39,6 +38,7 @@ CLONED_STRATEGY_COUNT = 'cloned_strategy_count'
 MUTATED_STRATEGY_COUNT = 'mutated_strategy_count'
 MERGED_STRATEGY_COUNT = 'merged_strategy_count'
 MAX_STRATEGY_COMPLEXITY = 'max_strategy_complexity'
+MUTATION_COEFFICIENT = 'mutation_coefficient'
 FITNESS_IMPROVEMENT_THRESHOLD = 'fitness_improvement_threshold'
 STRATEGY_GROUPING = 'strategy_grouping'
 
@@ -54,6 +54,7 @@ CONTEXT = 'property'
 PROTOTYPE = 'prototype'
 PROTOTYPES = 'prototypes'
 TRIGGER = 'trigger'
+INITIAL = 'initial'
 
 # Basic Functions
 ADDITION = 'addition'
@@ -108,6 +109,7 @@ DISENGAGE = 'disengage'
 SELF_TARGET = 'self'
 SINGLE_TARGET = 'single_target'
 RANGED_TARGET = 'ranged_attack'
+TILE_TARGET = 'terrain_target'
 
 # D&D Effects
 END_TURN = 'end_turn'
@@ -126,6 +128,10 @@ CONSTITUTION = 'constitution'
 INTELLIGENCE = 'intelligence'
 WISDOM = 'wisdom'
 CHARISMA = 'charisma'
+
+POSITION = 'position'
+BOARD_WIDTH = 'board_width'
+BOARD_HEIGHT = 'board_height'
 
 SEPARATOR = '_'
 ABILITY_MODIFIER = 'am'
@@ -327,7 +333,7 @@ class BasicContext(MutableMapping):
             return expression
 
     def re_context(self, base):
-        return type(self)(self.properties, base)
+        return type(base)(properties=base.properties, base=self)
 
     def get(self, key):
         if hasattr(self, key):
@@ -335,52 +341,94 @@ class BasicContext(MutableMapping):
         else:
             value = self.properties[key]
 
-        if not (value or self.base):
+        if (value is None) and (self.base is not None):
             value = self.base.get(key)
 
         if is_context(value):
             value = self.re_context(value)
-        elif is_expression(value):
-            value = deep_copy(value).update(self.properties)
+        elif is_evaluable(value):
+            value = deep_copy(value)
+            deep_fill(value, self.properties)
 
         return value
 
     def set(self, key, value):
+        self.properties[key] = value
+
         if hasattr(self, key):
             setattr(self, key, value)
-        else:
-            self.properties[key] = value
 
-        if self.base:
+        if self.base is not None:
             self.base.set(key, value)
 
 
 class NamedContext(BasicContext):
+    def __init__(self, properties, name='', base=None):
+        super().__init__(properties, base)
+        self.name = name
+        self.properties[name] = name
+
+
+class NamedContextList(MutableSequence):
     def __init__(self, name='', base=None):
         self.name = name
-        super().__init__({}, base)
+        self.base = base
 
-    def re_context(self, base):
-        return type(self)(self.properties, self.name, base)
+    def insert(self, index, value):
+        return self.base.insert(index, value)
+
+    def __getitem__(self, index):
+        return self.base.__getitem__(index)
+
+    def __setitem__(self, index, value):
+        return self.base.__setitem__(index, value)
+
+    def __delitem__(self, index):
+        return self.base.__delitem__(index)
+
+    def __len__(self):
+        return self.base.__len__()
 
 
 class Game(NamedContext):
-    def __init__(self, name='', base=None):
+    def __init__(self, properties=None, name='', base=None):
+        super().__init__(properties, name, base)
         self.strategy_manager = None
         self.alignments = []
         self.characters = []
         self.abilities = {}
+        self.skills = {}
         self.resources = {}
-        self.board = None
-        super().__init__(name, base)
+        self.match_data = None
 
-    def get_match(self):
-        pass
+    def add_character(self, character):
+        self.characters.append(character)
+        if character.alignement not in self.alignments:
+            self.alignments.append(character.alignement)
+
+    def add_resource(self, resource):
+        self.resources[resource.name] = resource
+
+    def add_ability(self, ability):
+        self.abilities[ability.name] = ability
+
+    def add_skill(self, skill):
+        self.skills[skill.name] = skill
+
+    def get_match(self, match_data):
+        match_context = MatchContext(self, match_data)
 
 
 class MatchContext(BasicContext):
-    def __init__(self):
-        self.game = None
+    def __init__(self, game, match_data):
+        self.game = game
+        self.board = Board(match_data[BOARD_WIDTH], match_data[BOARD_HEIGHT])
+        self.match_characters = []
+        for character in match_data[CHARACTERS]:
+            match_character = MatchCharacter(character, base=game.characters[character[NAME]])
+            self.match_characters.append(match_character)
+
+        self.set(MATCH, self)
 
     def simulate(self):
         possible_actions = self.get_actions()
@@ -392,29 +440,34 @@ class MatchContext(BasicContext):
     def get_fitness(self, strategy_name):
         pass
 
+    # TODO
     def get_actions(self):
-        pass
+        return []
 
     def act(self, action):
         pass
 
 
-class MatchCharacter(BasicContext):
-    def __init__(self):
-        pass
+class MatchCharacter(NamedContext):
+    def __init__(self, properties, name='', base=None):
+        super().__init__(properties, name, base)
+        self.alignment = None
+        x = properties[POSITION][0]
+        y = properties[POSITION][1]
+        self.set(POSITION, Tile(x, y))
 
 
 class MatchResourceSet(BasicContext):
     pass
 
 
-class MatchResource(BasicContext):
+class MatchResource(NamedContext):
     pass
 
 
 class Alignment(NamedContext):
-    def __init__(self, name='', base=None):
-        super().__init__(name, base)
+    def __init__(self, properties, name='', base=None):
+        super().__init__(properties, name, base)
         self.function_map[INITIATIVE] = self.get_initiative
 
     def get_initiative(self, expression):
@@ -425,8 +478,10 @@ class Alignment(NamedContext):
 
 
 class Character(NamedContext):
-    def __init__(self, name='', base=None):
-        super().__init__(name, base)
+    def __init__(self, properties, name='', base=None):
+        super().__init__(properties, name, base)
+        self.abilities = {}
+        self.skills = {}
         self.function_map[INITIATIVE] = self.get_initiative
 
     def get_initiative(self, expression):
@@ -436,19 +491,51 @@ class Character(NamedContext):
             self.set(INITIATIVE, initiative)
 
 
+class Ability(NamedContext):
+    def __init__(self, properties, name='', base=None):
+        super().__init__(properties, name, base)
+        self.hook = None
+        self.conditions = []
+        self.trigger = None
+
+
+class Skill(NamedContext):
+    def __init__(self, properties, name='', base=None):
+        super().__init__(properties, name, base)
+        self.targeting = None
+        self.conditions = []
+        self.trigger = None
+
+
+class Resource(NamedContext):
+    def __init__(self, properties, name='', base=None):
+        super().__init__(properties, name, base)
+        self.initial = 0
+        self.properties[INITIAL] = 0
+
+    def set_initial(self, expression):
+        if expression is not None:
+            self.set(INITIAL, self.eval(expression))
+
+
 class Board(BasicContext):
     def __init__(self, width, height, base=None):
+        super().__init__({}, base)
         self.width = width
         self.height = height
-        super().__init__({}, base)
 
-    def re_context(self, base):
-        return type(self)(self.properties, self.width, self.height, base)
+
+class Tile(BasicContext):
+    def __init__(self, x, y, base=None):
+        super().__init__({}, base)
+        self.x = x
+        self.y = y
 
 
 class StrategyManager:
-    def __init__(self, game, expression):
+    def __init__(self, game, match_data, expression):
         self.game = game
+        self.match_data = match_data
         self.strategies = {}
         self.simulations_per_generation = expression[SIMULATIONS_PER_GENERATION]
         self.novel_strategy_count = expression[NOVEL_STRATEGY_COUNT]
@@ -456,6 +543,7 @@ class StrategyManager:
         self.mutated_strategy_count = expression[MUTATED_STRATEGY_COUNT]
         self.merged_strategy_count = expression[MERGED_STRATEGY_COUNT]
         self.max_strategy_complexity = expression[MAX_STRATEGY_COMPLEXITY]
+        self.mutation_coefficient = expression[MUTATION_COEFFICIENT]
         self.fitness_improvement_threshold = expression[FITNESS_IMPROVEMENT_THRESHOLD]
 
     def merge(self, strategy1, strategy2):
@@ -491,7 +579,7 @@ class StrategyManager:
                 fitness = 0
                 for i in range(self.simulations_per_generation):
                     self.strategies[strategy_name] = strategy
-                    match_context = self.game.get_match()
+                    match_context = self.game.get_match(self.match_data)
                     match_context.simulate()
                     fitness += match_context.get_fitness(strategy_name)
                 strategy.fitness = fitness / self.simulations_per_generation
@@ -562,24 +650,22 @@ def unload_config(config):
 
     characters = get_concretes(config[CHARACTERS])
     for character in characters:
-        create_character(game, characters[character])
-
-    skills = get_concretes(config[SKILLS])
-    for skill in skills:
-        create_skill(game, skills[skill])
-
-    abilities = get_concretes(config[ABILITIES])
-    for ability in abilities:
-        create_ability(game, abilities[ability])
+        create_character(game, character, characters[character])
 
     resources = get_concretes(config[RESOURCES])
     for resource in resources:
-        create_resource(game, resources[resource])
+        create_resource(game, resource, resources[resource])
 
-    games = get_concretes(config[GAMES])
-    create_game(game, games[config[GAME]])
+    abilities = get_concretes(config[ABILITIES])
+    for ability in abilities:
+        create_ability(game, ability, abilities[ability])
 
-    return create_strategy_manager(game, config[STRATEGY])
+    skills = get_concretes(config[SKILLS])
+    for skill in skills:
+        create_skill(game, skill, skills[skill])
+
+    match_data = get_concretes(config[MATCHES])[config[MATCH]]
+    return StrategyManager(game, match_data, config[STRATEGY])
 
 
 def load_config():
@@ -595,30 +681,39 @@ def load(path):
     return json.load(open(path))
 
 
-def create_game(game, expression):
-    pass
+def create_character(game, name, expression):
+    character = Character(name)
+    for key in expression:
+        character.set(key, expression[key])
+    game.add_character(character)
 
 
-# TODO
-def create_strategy_manager(game, expression):
-    manager = StrategyManager(game, expression)
-    return manager
+def create_resource(game, name, expression):
+    resource = Resource(name)
+    resource.set_initial(expression.get(INITIAL))
+    for key in expression:
+        resource.set(key, expression[key])
+    game.add_resource(resource)
 
 
-def create_character(game, expression):
-    pass
+def create_ability(game, name, expression):
+    if is_list(expression):
+        game.add_ability(NamedContextList(name, expression))
+    else:
+        ability = Ability(name)
+        for key in expression:
+            ability.set(key, expression[key])
+        game.add_ability(ability)
 
 
-def create_skill(game, expression):
-    pass
-
-
-def create_ability(game, expression):
-    pass
-
-
-def create_resource(game, expression):
-    pass
+def create_skill(game, name, expression):
+    if is_list(expression):
+        game.add_skill(NamedContextList(name, expression))
+    else:
+        skill = Skill(name)
+        for key in expression:
+            skill.set(key, expression[key])
+        game.add_skill(skill)
 
 
 def get_d20():
@@ -678,7 +773,7 @@ def get_concretes(expression):
 
 
 def deep_fill(dictionary, update):
-    if is_context(update):
+    if is_map(update):
         for key in update:
             value = dictionary.get(key)
             if value is None:
@@ -689,7 +784,7 @@ def deep_fill(dictionary, update):
 
 def deep_copy(dictionary):
     value = {}
-    if is_context(dictionary):
+    if is_map(dictionary):
         for key in dictionary:
             value[key] = deep_copy(dictionary.get(key))
         return value
@@ -698,11 +793,19 @@ def deep_copy(dictionary):
 
 
 def is_context(context):
-    return issubclass(type(context), BasicContext) or is_expression(context)
+    return issubclass(type(context), BasicContext)
 
 
-def is_expression(expression):
+def is_map(context):
+    return issubclass(type(context), MutableMapping)
+
+
+def is_evaluable(expression):
     return issubclass(type(expression), dict)
+
+
+def is_list(expression):
+    return issubclass(type(expression), MutableSequence)
 
 
 def main():
