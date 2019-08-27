@@ -533,7 +533,6 @@ class MatchContext(BasicContext):
                     value += resource.get_quantity * resource.value
         return value
 
-    # TODO
     def get_actions(self):
         if len(self.action_set_stack) > 0:
             return self.action_set_stack.pop()
