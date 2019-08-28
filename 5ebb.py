@@ -33,6 +33,7 @@ RESOURCES = 'resources'
 STRATEGY = 'strategy'
 
 # Strategy Manager Properties
+MAXIMUM_TURNS = 'maximum_turns'
 SIMULATIONS_PER_GENERATION = 'simulations_per_generation'
 NOVEL_STRATEGY_COUNT = 'novel_strategy_count'
 CLONED_STRATEGY_COUNT = 'cloned_strategy_count'
@@ -48,6 +49,8 @@ PROFILE = 'profile'
 ARGUMENTS = 'arguments'
 CONDITIONS = 'conditions'
 EFFECTS = 'effects'
+SUCCESS_EFFECTS = 'success_effects'
+FAILURE_EFFECTS = 'failure_effects'
 VALUE = 'value'
 NAME = 'name'
 BONUS = 'bonus'
@@ -56,6 +59,7 @@ PROTOTYPE = 'prototype'
 PROTOTYPES = 'prototypes'
 TRIGGER = 'trigger'
 INITIAL = 'initial'
+COMPULSORY = 'compulsory'
 TARGETING = 'targeting'
 HOOK = 'hook'
 
@@ -175,6 +179,22 @@ def deep_copy(dictionary):
         return value
     else:
         return dictionary
+
+
+def is_map(context):
+    return issubclass(type(context), MutableMapping)
+
+
+def is_evaluable(expression):
+    return issubclass(type(expression), dict) or issubclass(type(expression), Evaluable)
+
+
+def is_list(expression):
+    return issubclass(type(expression), MutableSequence)
+
+
+def is_context(context):
+    return issubclass(type(context), BasicContext)
 
 
 class Die:
@@ -375,11 +395,13 @@ class BasicContext(MutableMapping):
         for trigger in self.hook_map[hook_name]:
             get_targeting(self.hook_targeting.get(hook_name), base=self).act(Trigger(trigger))
 
-    def check_conditions(self, conditions):
+    def check_conditions(self, conditions=None):
+        if conditions is None:
+            conditions = self.get(CONDITIONS)
         return self.func_and({ARGUMENTS: conditions})
 
     def eval(self, expression):
-        if type(expression) is dict:
+        if is_evaluable(expression):
             key = expression.keys[0]
             func = self.function_map[key]
             if func is not None:
@@ -406,8 +428,7 @@ class BasicContext(MutableMapping):
         if is_context(value):
             value = self.re_context(value)
         elif is_evaluable(value):
-            value = deep_copy(value)
-            deep_fill(value, self.properties)
+            value = Evaluable(value, base=self)
 
         return value
 
@@ -416,6 +437,11 @@ class BasicContext(MutableMapping):
 
         if hasattr(self, key):
             setattr(self, key, value)
+
+
+class Evaluable(BasicContext):
+    def __init__(self, expression, name='', base=None):
+        super().__init__(expression, name, base)
 
 
 class BasicContextList(MutableSequence):
@@ -526,11 +552,23 @@ class MatchContext(BasicContext):
         self.initiative_set.add_character(character)
 
     def simulate(self):
-        possible_actions = self.get_actions()
-        while possible_actions is not None:
-            action = self.environment.strategy_manager.choose_action(possible_actions)
-            action.act()
+        while self.strategy_manager.is_ongoing(self):
             possible_actions = self.get_actions()
+            action = self.environment.strategy_manager.choose_action(possible_actions)
+            if action is None:
+                continue
+            else:
+                action.act()
+
+    def no_conflict(self):
+        alignments = []
+        for character in self.match_characters:
+            alignment = character.alignement
+            if character.is_in_play() and alignment not in alignments:
+                alignments.append(alignment)
+                if len(alignments) > 1:
+                    return False
+        return True
 
     def get_fitness(self, strategy_name):
         value = 0
@@ -545,7 +583,11 @@ class MatchContext(BasicContext):
             return self.action_set_stack.pop()
         else:
             self.turn += 1
-            return self.initiative_set.get_next_character().get_actions()
+            character = self.initiative_set.get_next_character()
+            actions = []
+            if character is not None:
+                actions = character.get_actions()
+            return actions
 
     def add_actions(self, action_set):
         self.action_set_stack.append(action_set)
@@ -560,34 +602,22 @@ class InitiativeSet(BasicContext):
         self.current_characters = []
 
     def get_next_character(self):
-        if self.no_conflict():
-            return None
-        elif len(self.current_characters) > 0:
+        character = None
+
+        if len(self.current_characters) > 0:
             character = self.current_characters[0]
-            if character.is_turn():
-                return character
-            else:
+            if not character.is_turn():
                 self.current_characters.pop()
                 self.trigger_start()
-                return self.get_next_character()
         else:
             self.load_current_characters()
             self.trigger_start()
-            return self.get_next_character()
+
+        return character
 
     def trigger_start(self):
         if len(self.current_characters) > 0:
             self.current_characters[0].trigger_hook(START_OF_TURN)
-
-    def no_conflict(self):
-        alignments = []
-        for character in self.characters:
-            alignment = character.alignement
-            if character.is_in_play() and alignment not in alignments:
-                alignments.append(alignment)
-                if len(alignments) > 1:
-                    return False
-        return True
 
     def load_current_characters(self):
         i = 0
@@ -647,7 +677,7 @@ class MatchCharacter(Character):
             skill = self.skills[skill_name]
             if self.check_conditions(skill.conditions):
                 targeting = get_targeting(expression=skill[TARGETING], base=self)
-                actions += targeting.get_actions()
+                actions += targeting.get_actions(skill)
         return actions
 
     def is_turn(self):
@@ -682,12 +712,25 @@ class MatchAction(BasicContext):
 
 
 class Targeting(BasicContext):
+    def __init__(self, expression, name='', base=None):
+        if name == '':
+            name = expression[PROFILE]
+        super().__init__(expression, name, base)
+
     def get_actions(self, skill):
         targets = self.get_targets()
         return [MatchAction(self.base, skill, target, self) for target in targets]
 
     def get_targets(self):
-        pass
+        return []
+
+    def act(self, trigger):
+        return
+
+
+class SelfTargeting(Targeting):
+    def __init__(self, expression, name='', base=None):
+        super().__init__(expression, name, base)
 
     def act(self, trigger):
         pass
@@ -695,28 +738,72 @@ class Targeting(BasicContext):
 
 class Trigger(BasicContext):
     def __init__(self, expression, name='', base=None):
-        super().__init__(name=name, base=base)
-        pass
+        super().__init__(expression, name=name, base=base)
+        self.conditions = expression.get(CONDITIONS)
+        self.effects = expression.get[EFFECTS]
+        self.success_effects = expression.get(SUCCESS_EFFECTS)
+        self.failure_effects = expression.get(FAILURE_EFFECTS)
+
+        if self.conditions is None:
+            self.conditions = []
+        if self.effects is None:
+            self.effects = []
+        if self.success_effects is None:
+            self.success_effects = []
+        if self.failure_effects is None:
+            self.failure_effects = []
 
 
-# TODO: default to self
+# TODO: add more targeting
 def get_targeting(expression=None, base=None):
-    return Targeting(expression, base=base)
+    return SelfTargeting(expression=expression, base=base)
 
 
 class MatchResourceSet(BasicContext):
-    def __init__(self):
+    def __init__(self, properties=None, name='', base=None):
+        super().__init__(properties, name, base)
+        self.resource_definitions = []
+        self.resources = {}
+
+    def add_resource(self, resource):
+        self.resource_definitions.append(resource)
+
+    def get(self, key):
+        if key in [resource.name for resource in self.resource_definitions]:
+            if self.resources[key] is None:
+                return MatchResource(self.resources[key], self, name=key)
+
+    def credit(self, resource, value):
+        resource.quantity -= value
+        if resource.quantity <= 0:
+            
+
+    def debit(self, resource, value):
+        pass
+
+    def set_func(self, resource, value):
         pass
 
 
 class MatchResource(BasicContext):
-    def __init__(self, quantity, maximum):
-        pass
+    def __init__(self, expression, resource_set, name='', base=None):
+        super().__init__(expression, name, base)
+        self.quantity = 0
+        self.resource_set = resource_set
+        self.initial = expression.get(INITIAL)
+        self.compulsory = expression.get(COMPULSORY)
 
     def get_quantity(self):
         pass
 
-    pass
+    def credit(self, value):
+        self.resource_set.credit(self, value)
+
+    def debit(self, value):
+        self.resource_set.debit(self, value)
+
+    def set_func(self, value):
+        self.resource_set.set_func(self, value)
 
 
 class Board(BasicContext):
@@ -739,6 +826,7 @@ class StrategyManager:
     def __init__(self, environment, match_data, expression):
         self.environment = environment
         self.match_data = match_data
+        self.maximum_turns = expression[MAXIMUM_TURNS]
         self.simulations_per_generation = expression[SIMULATIONS_PER_GENERATION]
         self.novel_strategy_count = expression[NOVEL_STRATEGY_COUNT]
         self.cloned_strategy_count = expression[CLONED_STRATEGY_COUNT]
@@ -827,7 +915,12 @@ class StrategyManager:
     def trim(self, strategies, threshold):
         pass
 
+    def is_ongoing(self, match_context):
+        return (match_context.not_conflict()) and (match_context.turn <= self.maximum_turns)
+
     def choose_action(self, actions):
+        action = None
+        return action
         pass
 
 
@@ -897,22 +990,6 @@ def create_skill(environment, name, expression):
         for key in expression:
             skill.set(key, expression[key])
         environment.add_skill(skill)
-
-
-def is_context(context):
-    return issubclass(type(context), BasicContext)
-
-
-def is_map(context):
-    return issubclass(type(context), MutableMapping)
-
-
-def is_evaluable(expression):
-    return issubclass(type(expression), dict)
-
-
-def is_list(expression):
-    return issubclass(type(expression), MutableSequence)
 
 
 # Driver
