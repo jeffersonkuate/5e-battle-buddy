@@ -152,6 +152,9 @@ LEVEL = 'level'
 MAX_HP = 'max_hp'
 INITIATIVE_BONUS = 'initiative_bonus'
 
+HIT_POINT = 'hit_point'
+CURRENT_ROLL = 'current_roll'
+DAMAGE = 'damage'
 RESOURCE_LEVEL = 'level'
 
 
@@ -235,6 +238,7 @@ class BasicContext(MutableMapping):
         self.properties = {} if properties is None else properties
         self.initiative = None
         self.die = Die()
+        self.effect_map = {}
         self.function_map = {
             CONTEXT: self.context,
             ADDITION: self.add,
@@ -256,8 +260,6 @@ class BasicContext(MutableMapping):
             EVAL: self.eval,
             DIE_ROLL: self.roll
         }
-        self.hook_map = {}
-        self.hook_targeting = {}
 
     def context(self, expression):
         return self.get(self.eval(expression[VALUE]))
@@ -391,9 +393,10 @@ class BasicContext(MutableMapping):
             self.initiative = initiative
         return initiative
 
-    def trigger_hook(self, hook_name):
-        for trigger in self.hook_map[hook_name]:
-            get_targeting(self.hook_targeting.get(hook_name), base=self).act(Trigger(trigger))
+    def affect(self, expression):
+        effect = self.effect_map[expression[PROFILE]]
+        if effect is not None:
+            effect(expression)
 
     def check_conditions(self, conditions=None):
         if conditions is None:
@@ -656,6 +659,14 @@ class MatchCharacter(Character):
         self.is_turn = False
         self.resources = MatchResourceSet()
         self.add_abilities(self.abilities.values())
+        self.hook_map = {}
+        self.hook_targeting = {}
+        self.effect_map[ATTACK] = self.attack
+        self.effect_map[CREDIT] = self.credit
+        self.effect_map[DEBIT] = self.debit
+        self.effect_map[SET] = self.set_func
+        self.effect_map[END_TURN] = self.end_turn
+        self.effect_map[REMOVAL_FROM_PLAY] = self.remove_from_play
 
         x = properties[POSITION][0]
         y = properties[POSITION][1]
@@ -671,6 +682,15 @@ class MatchCharacter(Character):
     def add_hook(self, hook, trigger):
         self.hook_map[hook].append(trigger)
 
+    def trigger_hook(self, hook_name):
+        for trigger in self.hook_map[hook_name]:
+            targeting = get_targeting(self.hook_targeting.get(hook_name), base=self)
+            targets = targeting.get_targets()
+            target = None
+            if len(targets) > 0:
+                target = targets[0]
+            targeting.act(self.re_context(target), Trigger(trigger))
+
     def get_actions(self):
         actions = []
         for skill_name in self.skills:
@@ -683,14 +703,37 @@ class MatchCharacter(Character):
     def is_turn(self):
         return self.is_turn
 
-    def start_turn(self):
+    def start_turn(self, expression=None):
         self.is_turn = True
 
-    def end_turn(self):
+    def end_turn(self, expression=None):
         self.is_turn = False
 
     def is_in_play(self):
         return self.in_play
+
+    def remove_from_play(self, expression=None):
+        self.in_play = False
+
+    def attack(self, expression):
+        self.set(DAMAGE, self.eval(expression[VALUE]))
+        self.trigger_hook(DAMAGE_TAKEN)
+        damage = self.get(DAMAGE)
+        self.resources.debit(self.resources.get(HIT_POINT), damage)
+
+    def roll(self, expression):
+        self.set(CURRENT_ROLL, super().roll(expression))
+        self.trigger_hook(ROLL)
+        return self.get(CURRENT_ROLL)
+
+    def credit(self, expression):
+        self.eval(expression[ARGUMENTS][0]).credit(expression[ARGUMENTS][1], expression[ARGUMENTS][2])
+
+    def debit(self, expression):
+        self.eval(expression[ARGUMENTS][0]).debit(expression[ARGUMENTS][1], expression[ARGUMENTS][2])
+
+    def set_func(self, expression):
+        self.eval(expression[ARGUMENTS][0]).set(expression[ARGUMENTS][1], expression[ARGUMENTS][2])
 
 
 class MatchAlignment(BasicContext):
@@ -708,7 +751,7 @@ class MatchAction(BasicContext):
         self.trigger = skill[TRIGGER]
 
     def act(self):
-        self.targeting.act(self.trigger)
+        self.targeting.act(self.re_context(self.target), self.trigger)
 
 
 class Targeting(BasicContext):
@@ -719,21 +762,34 @@ class Targeting(BasicContext):
 
     def get_actions(self, skill):
         targets = self.get_targets()
-        return [MatchAction(self.base, skill, target, self) for target in targets]
+        return [MatchAction(self.base, skill, target, self, base=skill) for target in targets]
 
     def get_targets(self):
         return []
 
-    def act(self, trigger):
-        return
+    def act(self, context, trigger):
+        trigger = context.re_context(trigger)
+        if trigger.check_conditions():
+            for effect in trigger.success_effects:
+                context.affect(effect)
+        else:
+            for effect in trigger.failaure_effects:
+                context.affect(effect)
+        for effect in trigger.effects:
+            context.affect(effect)
 
 
 class SelfTargeting(Targeting):
     def __init__(self, expression, name='', base=None):
         super().__init__(expression, name, base)
 
-    def act(self, trigger):
-        pass
+    def get_targets(self):
+        return [self.base]
+
+
+# TODO: add more targeting
+def get_targeting(expression=None, base=None):
+    return SelfTargeting(expression=expression, base=base)
 
 
 class Trigger(BasicContext):
@@ -754,11 +810,6 @@ class Trigger(BasicContext):
             self.failure_effects = []
 
 
-# TODO: add more targeting
-def get_targeting(expression=None, base=None):
-    return SelfTargeting(expression=expression, base=base)
-
-
 class MatchResourceSet(BasicContext):
     def __init__(self, properties=None, name='', base=None):
         super().__init__(properties, name, base)
@@ -772,17 +823,23 @@ class MatchResourceSet(BasicContext):
         if key in [resource.name for resource in self.resource_definitions]:
             if self.resources[key] is None:
                 return MatchResource(self.resources[key], self, name=key)
+        else:
+            return super().get(key)
 
     def credit(self, resource, value):
-        resource.quantity -= value
-        if resource.quantity <= 0:
-            
+        self.set_func(resource, resource.quantity + value)
 
     def debit(self, resource, value):
-        pass
+        self.set_func(resource, resource.quantity - value)
 
     def set_func(self, resource, value):
-        pass
+        name = resource.name
+        resource.quantity = value
+        if value > 0:
+            self.resources[name] = resource
+        else:
+            if name in self.resources:
+                self.resources.pop(name)
 
 
 class MatchResource(BasicContext):
@@ -793,16 +850,13 @@ class MatchResource(BasicContext):
         self.initial = expression.get(INITIAL)
         self.compulsory = expression.get(COMPULSORY)
 
-    def get_quantity(self):
-        pass
-
-    def credit(self, value):
+    def credit(self, key, value):
         self.resource_set.credit(self, value)
 
-    def debit(self, value):
+    def debit(self, key, value):
         self.resource_set.debit(self, value)
 
-    def set_func(self, value):
+    def set_func(self, key, value):
         self.resource_set.set_func(self, value)
 
 

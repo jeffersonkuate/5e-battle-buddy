@@ -69,9 +69,11 @@
             "profile": "debit",
             "arguments": [
               {
-                "resources": {
-                  "property": {
-                    "value": "movement"
+                "actor": {
+                  "resources": {
+                    "property": {
+                      "value": "movement"
+                    }
                   }
                 }
               },
@@ -260,11 +262,13 @@
             "profile": "debit",
             "arguments": [
               {
-                "resources": {
-                  "property": {
-                    "value": {
-                      "property": {
-                        "value": "attack_resource"
+                "actor": {
+                  "resources": {
+                    "property": {
+                      "value": {
+                        "property": {
+                          "value": "attack_resource"
+                        }
                       }
                     }
                   }
@@ -315,21 +319,27 @@
           "add": {
             "arguments": [
               {
-                "property": {
-                  "value": "strength_am"
+                "actor": {
+                  "property": {
+                    "value": "strength_am"
+                  }
                 }
               },
               {
-                "property": {
-                  "value": "proficiency"
+                "actor": {
+                  "property": {
+                    "value": "proficiency"
+                  }
                 }
               }
             ]
           }
         },
         "damage_bonus": {
-          "property": {
-            "value": "strength_am"
+          "actor": {
+            "property": {
+              "value": "strength_am"
+            }
           }
         }
       },
@@ -350,21 +360,27 @@
           "add": {
             "arguments": [
               {
-                "property": {
-                  "value": "dexterity_am"
+                "actor": {
+                  "property": {
+                    "value": "dexterity_am"
+                  }
                 }
               },
               {
-                "property": {
-                  "value": "proficiency"
+                "actor": {
+                  "property": {
+                    "value": "proficiency"
+                  }
                 }
               }
             ]
           }
         },
         "damage_bonus": {
-          "property": {
-            "value": "dexterity_am"
+          "actor": {
+            "property": {
+              "value": "dexterity_am"
+            }
           }
         }
       },
@@ -391,13 +407,17 @@
                 "max": {
                   "arguments": [
                     {
-                      "property": {
-                        "value": "strength_am"
+                      "actor": {
+                        "property": {
+                          "value": "strength_am"
+                        }
                       }
                     },
                     {
-                      "property": {
-                        "value": "dexterity_am"
+                      "actor": {
+                        "property": {
+                          "value": "dexterity_am"
+                        }
                       }
                     }
                   ]
@@ -415,13 +435,17 @@
           "max": {
             "arguments": [
               {
-                "property": {
-                  "value": "strength_am"
+                "actor": {
+                  "property": {
+                    "value": "strength_am"
+                  }
                 }
               },
               {
-                "property": {
-                  "value": "dexterity_am"
+                "actor": {
+                  "property": {
+                    "value": "dexterity_am"
+                  }
                 }
               }
             ]
@@ -436,9 +460,11 @@
       ],
       "properties": {
         "damage_base": {
-          "roll": {
-            "count": 1,
-            "sides": 8
+          "actor": {
+            "roll": {
+              "count": 1,
+              "sides": 8
+            }
           }
         }
       }
@@ -461,9 +487,11 @@
       ],
       "properties": {
         "damage_base": {
-          "roll": {
-            "count": 1,
-            "sides": 10
+          "actor": {
+            "roll": {
+              "count": 1,
+              "sides": 10
+            }
           }
         }
       }
@@ -478,9 +506,11 @@
         "attack_bonus": 4,
         "damage_bonus": 2,
         "damage_base": {
-          "roll": {
-            "count": 1,
-            "sides": 6
+          "actor": {
+            "roll": {
+              "count": 1,
+              "sides": 6
+            }
           }
         }
       }
