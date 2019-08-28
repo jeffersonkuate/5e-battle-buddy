@@ -57,6 +57,7 @@ PROTOTYPES = 'prototypes'
 TRIGGER = 'trigger'
 INITIAL = 'initial'
 TARGETING = 'targeting'
+HOOK = 'hook'
 
 # Basic Functions
 ADDITION = 'addition'
@@ -92,6 +93,8 @@ THREATENED_ZONE_ENTRANCE = 'threatened_zone_entrance'
 THREATENED_ZONE_EXIT = 'threatened_zone_exit'
 DAMAGE_DONE = 'damage_done'
 DAMAGE_TAKEN = 'damage_taken'
+DEATH = 'death'
+REMOVAL_FROM_PLAY = 'remove_from_play'
 
 # Affinities
 HOSTILE = 'hostile'
@@ -131,7 +134,9 @@ INTELLIGENCE = 'intelligence'
 WISDOM = 'wisdom'
 CHARISMA = 'charisma'
 
+ALIGNMENT = 'alignment'
 POSITION = 'position'
+INITIATIVE = 'initiative'
 BOARD_WIDTH = 'board_width'
 BOARD_HEIGHT = 'board_height'
 
@@ -141,7 +146,6 @@ SAVE = 'save'
 
 LEVEL = 'level'
 MAX_HP = 'max_hp'
-INITIATIVE = 'initiative'
 INITIATIVE_BONUS = 'initiative_bonus'
 
 RESOURCE_LEVEL = 'level'
@@ -201,6 +205,9 @@ class BasicContext(MutableMapping):
 
     def __iter__(self):
         self.properties.__iter__()
+
+    def __eq__(self, other):
+        return self.get(NAME) == other.get(NAME)
 
     def __init___(self, properties=None, name='', base=None):
         self.base = base
@@ -366,7 +373,7 @@ class BasicContext(MutableMapping):
 
     def trigger_hook(self, hook_name):
         for trigger in self.hook_map[hook_name]:
-            get_targeting(self.hook_targeting[hook_name], base=self).act(Trigger(trigger))
+            get_targeting(self.hook_targeting.get(hook_name), base=self).act(Trigger(trigger))
 
     def check_conditions(self, conditions):
         return self.func_and({ARGUMENTS: conditions})
@@ -522,7 +529,7 @@ class MatchContext(BasicContext):
         possible_actions = self.get_actions()
         while possible_actions is not None:
             action = self.environment.strategy_manager.choose_action(possible_actions)
-            action.act(action)
+            action.act()
             possible_actions = self.get_actions()
 
     def get_fitness(self, strategy_name):
@@ -546,62 +553,140 @@ class MatchContext(BasicContext):
 
 class InitiativeSet(BasicContext):
     def __init__(self):
-        self.characters = {}
+        self.characters = []
+        self.turn_order = {}
         self.initiatives = []
         self.current_initiative = math.inf
+        self.current_characters = []
 
     def get_next_character(self):
-        pass
+        if self.no_conflict():
+            return None
+        elif len(self.current_characters) > 0:
+            character = self.current_characters[0]
+            if character.is_turn():
+                return character
+            else:
+                self.current_characters.pop()
+                self.trigger_start()
+                return self.get_next_character()
+        else:
+            self.load_current_characters()
+            self.trigger_start()
+            return self.get_next_character()
+
+    def trigger_start(self):
+        if len(self.current_characters) > 0:
+            self.current_characters[0].trigger_hook(START_OF_TURN)
+
+    def no_conflict(self):
+        alignments = []
+        for character in self.characters:
+            alignment = character.alignement
+            if character.is_in_play() and alignment not in alignments:
+                alignments.append(alignment)
+                if len(alignments) > 1:
+                    return False
+        return True
+
+    def load_current_characters(self):
+        i = 0
+        initiative = self.initiatives[i]
+        while self.current_initiative >= initiative:
+            i += 1
+            if i >= len(self.initiatives):
+                i = 0
+                self.current_initiative = math.inf
+            initiative = self.initiatives[i]
+        self.current_initiative = initiative
+        self.current_characters = self.turn_order[initiative]
 
     def add_character(self, character):
         initiative = character.get_initiative()
-        turns = self.characters[initiative]
+        turns = self.turn_order[initiative]
         if turns is None:
             turns = [character]
-            self.characters[initiative] = turns
+            self.turn_order[initiative] = turns
             self.initiatives.append(initiative)
         else:
             turns.append(character)
 
+        self.characters.append(character)
         self.initiative.sort(reverse=True)
 
 
 class MatchCharacter(Character):
     def __init__(self, properties, name='', base=None):
+        if name == '':
+            name = properties[NAME]
         super().__init__(properties, name, base)
-        self.alignment = None
+        self.alignment = MatchAlignment(name=properties[ALIGNMENT])
         self.match = None
+        self.in_play = True
+        self.is_turn = False
         self.resources = MatchResourceSet()
+        self.add_abilities(self.abilities.values())
+
         x = properties[POSITION][0]
         y = properties[POSITION][1]
         self.set(POSITION, Tile(x, y))
 
+    def add_abilities(self, abilities):
+        for ability in abilities:
+            self.add_ability(ability)
+
+    def add_ability(self, ability):
+        self.add_hook(ability[HOOK][PROFILE], ability[TRIGGER])
+
+    def add_hook(self, hook, trigger):
+        self.hook_map[hook].append(trigger)
+
     def get_actions(self):
-        pass
+        actions = []
+        for skill_name in self.skills:
+            skill = self.skills[skill_name]
+            if self.check_conditions(skill.conditions):
+                targeting = get_targeting(expression=skill[TARGETING], base=self)
+                actions += targeting.get_actions()
+        return actions
+
+    def is_turn(self):
+        return self.is_turn
+
+    def start_turn(self):
+        self.is_turn = True
+
+    def end_turn(self):
+        self.is_turn = False
+
+    def is_in_play(self):
+        return self.in_play
 
 
 class MatchAlignment(BasicContext):
-    def __init__(self, properties, name='', base=None):
+    def __init__(self, properties=None, name='', base=None):
         super().__init__(properties, name, base)
         self.function_map[INITIATIVE] = self.get_initiative
 
 
-class MatchActionSet(BasicContext):
-    pass
-
-
 class MatchAction(BasicContext):
-    def __init__(self, properties, skill, name='', base=None):
+    def __init__(self, actor, skill, target, targeting, properties=None, name='', base=None):
         super().__init__(properties=properties, name=name, base=base)
-        self.targeting = Targeting(skill[TARGETING], base=self)
+        self.actor = actor
+        self.target = target
+        self.targeting = targeting
+        self.trigger = skill[TRIGGER]
 
     def act(self):
         self.targeting.act(self.trigger)
 
 
 class Targeting(BasicContext):
-    def __init__(self, expression, name='', base=None):
-        super().__init__(name=name, base=base)
+    def get_actions(self, skill):
+        targets = self.get_targets()
+        return [MatchAction(self.base, skill, target, self) for target in targets]
+
+    def get_targets(self):
         pass
 
     def act(self, trigger):
@@ -614,12 +699,9 @@ class Trigger(BasicContext):
         pass
 
 
-def get_targeting(self, name='self', base=None):
-    pass
-
-
-class Targeting(BasicContext):
-    pass
+# TODO: default to self
+def get_targeting(expression=None, base=None):
+    return Targeting(expression, base=base)
 
 
 class MatchResourceSet(BasicContext):

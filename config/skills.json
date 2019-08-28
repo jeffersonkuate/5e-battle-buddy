@@ -30,9 +30,11 @@
         }
       ],
       "trigger": {
-        "effects": {
-          "profile": "end_turn"
-        }
+        "effects": [
+          {
+            "profile": "end_turn"
+          }
+        ]
       }
     },
     "movement": {
@@ -275,6 +277,10 @@
         ]
       }
     },
+    "multi-resource-attack": {
+      "prototype": true,
+      "conditions": false
+    },
     "action_attack": {
       "prototype": true,
       "profile": "action_attack",
@@ -289,10 +295,13 @@
       "prototype": true,
       "profile": "opportunity_attack",
       "prototypes": [
-        "attack"
+        "multi-resource-attack"
       ],
       "properties": {
-        "attack_resource": "reaction"
+        "attack_resource": [
+          "reaction",
+          "opportunity"
+        ]
       }
     },
     "melee_weapon_attack": {

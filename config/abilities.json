@@ -69,6 +69,9 @@
               "quantity",
               1
             ]
+          },
+          {
+            "profile": "start_turn"
           }
         ]
       }
