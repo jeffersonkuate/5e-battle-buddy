@@ -18,14 +18,23 @@
       "name": "reaction",
       "initial": 1
     },
-    "dodge_token": {},
-    "disengage_token": {},
+    "dodge_token": {
+      "max_value": 1
+    },
+    "disengage_token": {
+      "max_value": 1
+    },
     "life": {
       "initial": 1,
       "value": 100
     },
     "hit_point": {
       "initial": {
+        "property": {
+          "value": "max_hp"
+        }
+      },
+      "max_value": {
         "property": {
           "value": "max_hp"
         }

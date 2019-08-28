@@ -152,6 +152,7 @@ LEVEL = 'level'
 MAX_HP = 'max_hp'
 INITIATIVE_BONUS = 'initiative_bonus'
 
+MAX_VALUE = 'max_value'
 HIT_POINT = 'hit_point'
 CURRENT_ROLL = 'current_roll'
 DAMAGE = 'damage'
@@ -403,6 +404,12 @@ class BasicContext(MutableMapping):
             conditions = self.get(CONDITIONS)
         return self.func_and({ARGUMENTS: conditions})
 
+    def get_match(self):
+        return self.get(MATCH)
+
+    def set_match(self, match):
+        self.set(MATCH, match)
+
     def eval(self, expression):
         if is_evaluable(expression):
             key = expression.keys[0]
@@ -547,21 +554,26 @@ class MatchContext(BasicContext):
             match_character = MatchCharacter(character, base=environment.characters[character[NAME]])
             self.add_character(match_character)
 
-        self.set(MATCH, self)
+        self.set_match(self)
 
     def add_character(self, character):
-        character.set(MATCH, self)
+        character.set_match(self)
         self.match_characters.append(character)
         self.initiative_set.add_character(character)
 
     def simulate(self):
         while self.strategy_manager.is_ongoing(self):
-            possible_actions = self.get_actions()
-            action = self.environment.strategy_manager.choose_action(possible_actions)
-            if action is None:
-                continue
+            actions = []
+            if len(self.action_set_stack) > 0:
+                actions = self.action_set_stack.pop()
             else:
-                action.act()
+                self.turn += 1
+                character = self.initiative_set.get_next_character()
+                if character is not None:
+                    actions = character.get_actions()
+
+            if len(actions) > 0:
+                self.strategy_manager.get_strategy(actions[0].actor).choose_action(actions).act()
 
     def no_conflict(self):
         alignments = []
@@ -580,17 +592,6 @@ class MatchContext(BasicContext):
                 for resource in character.resources:
                     value += resource.get_quantity * resource.value
         return value
-
-    def get_actions(self):
-        if len(self.action_set_stack) > 0:
-            return self.action_set_stack.pop()
-        else:
-            self.turn += 1
-            character = self.initiative_set.get_next_character()
-            actions = []
-            if character is not None:
-                actions = character.get_actions()
-            return actions
 
     def add_actions(self, action_set):
         self.action_set_stack.append(action_set)
@@ -700,6 +701,9 @@ class MatchCharacter(Character):
                 actions += targeting.get_actions(skill)
         return actions
 
+    def get_hp(self):
+        return self.resources.get(HIT_POINT)
+
     def is_turn(self):
         return self.is_turn
 
@@ -787,9 +791,20 @@ class SelfTargeting(Targeting):
         return [self.base]
 
 
+class SingleTargeting(Targeting):
+    def __init__(self, expression, name='', base=None):
+        super().__init__(expression, name, base)
+
+    def get_targets(self):
+        return [self.get_match().match_characters]
+
+
 # TODO: add more targeting
 def get_targeting(expression=None, base=None):
-    return SelfTargeting(expression=expression, base=base)
+    if expression[PROFILE] == ATTACK:
+        return SingleTargeting(expression=expression, base=base)
+    else:
+        return SelfTargeting(expression=expression, base=base)
 
 
 class Trigger(BasicContext):
@@ -818,6 +833,7 @@ class MatchResourceSet(BasicContext):
 
     def add_resource(self, resource):
         self.resource_definitions.append(resource)
+        self.get(resource.name).set_initial()
 
     def get(self, key):
         if key in [resource.name for resource in self.resource_definitions]:
@@ -848,7 +864,11 @@ class MatchResource(BasicContext):
         self.quantity = 0
         self.resource_set = resource_set
         self.initial = expression.get(INITIAL)
+        self.max_value = expression.get(MAX_VALUE)
         self.compulsory = expression.get(COMPULSORY)
+
+    def set_initial(self):
+        self.resource_set.set_func(self, self.initial)
 
     def credit(self, key, value):
         self.resource_set.credit(self, value)
@@ -858,6 +878,12 @@ class MatchResource(BasicContext):
 
     def set_func(self, key, value):
         self.resource_set.set_func(self, value)
+
+    def get_quantity(self):
+        return self.quantity
+
+    def get_damage(self):
+        return self.max_value - self.quantity if self.max_value is not None else self.quantity
 
 
 class Board(BasicContext):
@@ -879,7 +905,9 @@ class Tile(BasicContext):
 class StrategyManager:
     def __init__(self, environment, match_data, expression):
         self.environment = environment
+        self.character_templates = []
         self.match_data = match_data
+        self.match = None
         self.maximum_turns = expression[MAXIMUM_TURNS]
         self.simulations_per_generation = expression[SIMULATIONS_PER_GENERATION]
         self.novel_strategy_count = expression[NOVEL_STRATEGY_COUNT]
@@ -893,54 +921,56 @@ class StrategyManager:
 
         self.strategies = {}
         for character in match_data[CHARACTERS]:
-            strategy_name = MatchCharacter(character, base=environment.characters[character[NAME]]).eval(
-                self.strategy_grouping)
+            match_character = MatchCharacter(character, base=environment.characters[character[NAME]])
+            self.character_templates.append(match_character)
+            strategy_name = match_character.eval(self.strategy_grouping)
             if strategy_name not in self.strategies:
                 self.strategies[strategy_name] = Strategy(environment, strategy_name)
+
+    def get_match(self):
+        return self.match
 
     def get_strategy(self, character):
         strategy_name = character.eval(self.strategy_grouping)
         if self.strategies[strategy_name] is None:
-            self.strategies[strategy_name] = Strategy(self.environment, strategy_name)
+            self.strategies[strategy_name] = Strategy(self, strategy_name)
         return self.strategies[strategy_name]
-
-    def merge(self, strategy1, strategy2):
-        pass
-
-    def mutate(self, strategy):
-        pass
 
     def optimize(self, strategy_name):
         cloneable_strategies = []
         mutateable_strategies = []
         mergeable_strategies = []
 
-        last_fitness = 0
-        best_strategy = None
+        last_fitness = -math.inf
+        best_strategy = Strategy(self, strategy_name)
         strategies = []
         while (best_strategy is None
                or (((last_fitness * self.fitness_improvement_threshold) + last_fitness) < best_strategy.fitness)):
             last_fitness = best_strategy.fitness
 
             for i in range(self.novel_strategy_count):
-                strategies.append(Strategy(self.environment, strategy_name))
+                strategies.append(Strategy(self, strategy_name))
             while len(cloneable_strategies) > 0:
                 strategies.append(cloneable_strategies.pop())
             while len(mutateable_strategies) > 0:
-                pass
-                # strategies.append(self.mutate(mutateable_strategies.pop()))
+                mutateable_strategies.pop()
+                # strategies.append(mutateable_strategies.pop().mutate())
             while len(mergeable_strategies) > 1:
                 strategy1 = mergeable_strategies.pop()
                 strategy2 = mergeable_strategies.pop()
-                # strategies.append(self.merge(strategy1, strategy2))
+                # strategies.append(strategy1.merge(strategy2))
 
             for strategy in strategies:
                 fitness = 0
                 for i in range(self.simulations_per_generation):
                     self.strategies[strategy_name] = strategy
                     match_context = MatchContext(self.environment, self.match_data, self)
+
+                    self.match = match_context
                     match_context.simulate()
                     fitness += match_context.get_fitness(strategy_name)
+                    self.match = None
+
                 strategy.fitness = fitness / self.simulations_per_generation
 
                 cloneable_strategies.append(strategy)
@@ -967,48 +997,147 @@ class StrategyManager:
         return self.trim(strategies, self.merged_strategy_count)
 
     def trim(self, strategies, threshold):
-        pass
+        strategies = sorted(strategies, key=(lambda strategy: strategy.fitness), reverse=True)
+        if len(strategies) > threshold:
+            strategies = strategies[:threshold]
+        return strategies
 
     def is_ongoing(self, match_context):
         return (match_context.not_conflict()) and (match_context.turn <= self.maximum_turns)
 
-    def choose_action(self, actions):
-        action = None
-        return action
-        pass
+    def get_random_weight(self):
+        return random.randint(0, 10)
 
 
 class Strategy:
-    def __init__(self, environment, name=''):
-        self.environment = environment
+    def __init__(self, strategy_manager, name=''):
+        self.strategy_manager = strategy_manager
         self.name = name
         self.fitness = 0
-        self.nodes = {}
+        self.nodes = [Node(strategy_manager)]
+
+    def merge(self, strategy):
+        return self
+
+    def mutate(self):
+        return self
+
+    def choose_action(self, action_list):
+        weights = {}
+        for action in action_list:
+            weights[action] = 0
+            for node in self.nodes:
+                weights[action] += node.weigh(action)
+
+        best_action = None
+        largest_weight = -math.inf
+        for action in weights:
+            weight = weights[action]
+            if weight > largest_weight:
+                largest_weight = weight
+                best_action = action
+
+        return best_action
 
 
 class Node:
-    def decide(self, action_list):
-        pass
+    def __init__(self, strategy_manager):
+        self.strategy_manager = strategy_manager
+        self.condition = MetaCondition(strategy_manager)
+        self.action = MetaAction(strategy_manager)
+        self.weight = strategy_manager.get_random_weight()
+
+    def weigh(self, action):
+        if self.check_action(action):
+            return self.weight
+        else:
+            return 0
+
+    def check_action(self, action):
+        return self.condition.check() and self.action.check(action)
 
 
 class MetaCondition(BasicContext):
-    pass
+    def __init__(self, strategy_manager, properties=None, name='', base=None):
+        super().__init__(properties, name, base)
+        self.strategy_manger = strategy_manager
+        self.target = random.choice(strategy_manager.character_templates)
+        self.status = get_meta_status(strategy_manager)
+
+    def check(self):
+        return self.status.check(self.target)
 
 
-class MetaStatus(BasicContext):
-    pass
+def get_meta_status(strategy_manager):
+    if random.randint(0, 1):
+        return HealthMetaStatus(strategy_manager, random.randint(0, 10))
+    else:
+        return DamageMetaStatus(strategy_manager, random.randint(0, 10))
+
+
+class HealthMetaStatus(BasicContext):
+    def __init__(self, strategy_manager, value, properties=None, name='', base=None):
+        super().__init__(properties, name, base)
+        self.strategy_manager = strategy_manager
+        self.value = value
+
+    # TODO: change to a percentile check
+    def check(self, target):
+        return target.get_hp().get_quantity() > self.value
+
+
+class DamageMetaStatus(BasicContext):
+    def __init__(self, strategy_manager, value, properties=None, name='', base=None):
+        super().__init__(properties, name, base)
+        self.strategy_manager = strategy_manager
+        self.value = value
+
+    # TODO: change to a percentile check
+    def check(self, target):
+        return target.get_hp().get_damage() > self.value
 
 
 class MetaCharacter(BasicContext):
-    pass
+    def __init__(self, strategy_manager, characters=None, properties=None, name='', base=None):
+        super().__init__(properties, name, base)
+        self.strategy_manager = strategy_manager
+        if characters is None:
+            characters = strategy_manager.character_templates
+        characters.append(None)
+        self.character = random.choice(characters)
+
+    def check(self, target):
+        character = self.character
+        if character is None:
+            return True
+        else:
+            return target.name == character.name
 
 
 class MetaAction(BasicContext):
-    pass
+    def __init__(self, strategy_manager, properties=None, name='', base=None):
+        super().__init__(properties, name, base)
+        self.strategy_manager = strategy_manager
+        # TODO specify characters
+        self.actor = MetaCharacter(strategy_manager)
+        act_names = None if self.actor.character is None else [skill.name for skill in self.actor.character.skills]
+        name = ''
+        if act_names is not None:
+            name = random.choice(act_names)
+        self.act = MetaAct(strategy_manager, name=name)
+
+    def check(self, action):
+        return self.actor.check(action.actor) and self.act.check(action)
 
 
 class MetaAct(BasicContext):
-    pass
+    def __init__(self, strategy_manager, properties=None, name='', base=None):
+        super().__init__(properties, name, base)
+        self.strategy_manager = strategy_manager
+        self.target = MetaCharacter(strategy_manager)
+
+    def check(self, action):
+        return self.target.check(action.target) and action.name == self.name
 
 
 def create_character(environment, name, expression):
@@ -1113,7 +1242,7 @@ def report_strategies(manager, display):
 
 
 def report_strategy(strategy, display):
-    pass
+    return
 
 
 def checked_input(display, string='', prompt='', reg=REGEX_ALL):
