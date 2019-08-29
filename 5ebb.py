@@ -165,6 +165,13 @@ def get_d20():
     return {DIE_COUNT: 1, DIE_SIDES: 20}
 
 
+def trim(self, items, threshold, sort_value=lambda x: x):
+    items = sorted(items, key=sort_value, reverse=True)
+    if len(items) > threshold:
+        items = items[:threshold]
+    return items
+
+
 def deep_fill(dictionary, update):
     if is_map(update):
         for key in update:
@@ -953,12 +960,11 @@ class StrategyManager:
             while len(cloneable_strategies) > 0:
                 strategies.append(cloneable_strategies.pop())
             while len(mutateable_strategies) > 0:
-                mutateable_strategies.pop()
-                # strategies.append(mutateable_strategies.pop().mutate())
+                strategies.append(mutateable_strategies.pop().mutate())
             while len(mergeable_strategies) > 1:
                 strategy1 = mergeable_strategies.pop()
                 strategy2 = mergeable_strategies.pop()
-                # strategies.append(strategy1.merge(strategy2))
+                strategies.append(strategy1.merge(strategy2))
 
             for strategy in strategies:
                 fitness = 0
@@ -988,19 +994,13 @@ class StrategyManager:
         self.strategies[strategy_name] = best_strategy
 
     def trim_cloneable(self, strategies):
-        return self.trim(strategies, self.cloned_strategy_count)
+        return trim(strategies, self.cloned_strategy_count, lambda strategy: strategy.fitness)
 
     def trim_mutateable(self, strategies):
-        return self.trim(strategies, self.mutated_strategy_count)
+        return trim(strategies, self.mutated_strategy_count, lambda strategy: strategy.fitness)
 
     def trim_mergeable(self, strategies):
-        return self.trim(strategies, self.merged_strategy_count)
-
-    def trim(self, strategies, threshold):
-        strategies = sorted(strategies, key=(lambda strategy: strategy.fitness), reverse=True)
-        if len(strategies) > threshold:
-            strategies = strategies[:threshold]
-        return strategies
+        return trim(strategies, self.merged_strategy_count, lambda strategy: strategy.fitness)
 
     def is_ongoing(self, match_context):
         return (match_context.not_conflict()) and (match_context.turn <= self.maximum_turns)
@@ -1010,17 +1010,19 @@ class StrategyManager:
 
 
 class Strategy:
-    def __init__(self, strategy_manager, name=''):
+    def __init__(self, strategy_manager, name='', nodes=None):
         self.strategy_manager = strategy_manager
         self.name = name
         self.fitness = 0
-        self.nodes = [Node(strategy_manager)]
+        if nodes is None:
+            nodes = [Node(strategy_manager, strategy_manager.get_random_weight())]
+        self.nodes = nodes
 
     def merge(self, strategy):
-        return self
+        return Strategy(self.strategy_manager, self.name, self.nodes+strategy.nodes)
 
     def mutate(self):
-        return self
+        return Strategy(self.strategy_manager, self.name)
 
     def choose_action(self, action_list):
         weights = {}
@@ -1041,11 +1043,14 @@ class Strategy:
 
 
 class Node:
-    def __init__(self, strategy_manager):
+    def __init__(self, strategy_manager, weight=0):
         self.strategy_manager = strategy_manager
         self.condition = MetaCondition(strategy_manager)
         self.action = MetaAction(strategy_manager)
-        self.weight = strategy_manager.get_random_weight()
+        self.weight = weight
+
+    def mutate(self):
+        return Node(self.strategy_manager, self.weight+random.randint(-1, 1))
 
     def weigh(self, action):
         if self.check_action(action):
