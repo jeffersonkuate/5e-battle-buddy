@@ -1262,15 +1262,15 @@ def get_concretes(expression):
             concretes[key] = []
             for concrete_name in value:
                 concretes[key].append(expression[concrete_name])
+        else:
+            prototypes = []
+            if PROTOTYPES in value:
+                prototypes = value[PROTOTYPES]
 
-        prototypes = []
-        if PROTOTYPES in value:
-            prototypes = value[PROTOTYPES]
+            for prototype in prototypes:
+                deep_fill(value, values[prototype])
 
-        for prototype in prototypes:
-            deep_fill(value, values[prototype])
-
-        values[key] = value
+            values[key] = value
 
     for key in values:
         value = values[key]
