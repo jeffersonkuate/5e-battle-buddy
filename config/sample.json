@@ -1,6 +1,7 @@
 {
   "game": "1v1",
   "strategy": {
+    "maximum_turns": 50,
     "simulations_per_generation": 50,
     "novel_strategy_count": 50,
     "cloned_strategy_count": 50,
@@ -52,6 +53,14 @@
         "rapier_opportunity_attack",
         "heavy_crossbow_attack",
         "disengage"
+      ],
+      "resources": [
+        "movement",
+        "action",
+        "bonus_action",
+        "reaction",
+        "life",
+        "hit_point"
       ]
     },
     "Super Goblin": {
@@ -75,6 +84,14 @@
         "goblin_scimitar_action_attack",
         "goblin_scimitar_opportunity_attack",
         "disengage"
+      ],
+      "resources": [
+        "movement",
+        "action",
+        "bonus_action",
+        "reaction",
+        "life",
+        "hit_point"
       ]
     }
   },
@@ -109,15 +126,17 @@
         }
       ],
       "trigger": {
-        "effects": {
-          "profile": "end_turn"
-        }
+        "effects": [
+          {
+            "profile": "end_turn"
+          }
+        ]
       }
     },
     "movement": {
       "profile": "movement",
       "targeting": {
-        "profile": "single_target"
+        "profile": "terrain_target"
       },
       "conditions": [
         {
@@ -146,9 +165,11 @@
             "profile": "debit",
             "arguments": [
               {
-                "resources": {
-                  "property": {
-                    "value": "movement"
+                "actor": {
+                  "resources": {
+                    "property": {
+                      "value": "movement"
+                    }
                   }
                 }
               },
@@ -337,11 +358,13 @@
             "profile": "debit",
             "arguments": [
               {
-                "resources": {
-                  "property": {
-                    "value": {
-                      "property": {
-                        "value": "attack_resource"
+                "actor": {
+                  "resources": {
+                    "property": {
+                      "value": {
+                        "property": {
+                          "value": "attack_resource"
+                        }
                       }
                     }
                   }
@@ -353,6 +376,10 @@
           }
         ]
       }
+    },
+    "multi-resource-attack": {
+      "prototype": true,
+      "conditions": false
     },
     "action_attack": {
       "prototype": true,
@@ -368,10 +395,13 @@
       "prototype": true,
       "profile": "opportunity_attack",
       "prototypes": [
-        "attack"
+        "multi-resource-attack"
       ],
       "properties": {
-        "attack_resource": "reaction"
+        "attack_resource": [
+          "reaction",
+          "opportunity"
+        ]
       }
     },
     "melee_weapon_attack": {
@@ -385,21 +415,27 @@
           "add": {
             "arguments": [
               {
-                "property": {
-                  "value": "strength_am"
+                "actor": {
+                  "property": {
+                    "value": "strength_am"
+                  }
                 }
               },
               {
-                "property": {
-                  "value": "proficiency"
+                "actor": {
+                  "property": {
+                    "value": "proficiency"
+                  }
                 }
               }
             ]
           }
         },
         "damage_bonus": {
-          "property": {
-            "value": "strength_am"
+          "actor": {
+            "property": {
+              "value": "strength_am"
+            }
           }
         }
       },
@@ -420,21 +456,27 @@
           "add": {
             "arguments": [
               {
-                "property": {
-                  "value": "dexterity_am"
+                "actor": {
+                  "property": {
+                    "value": "dexterity_am"
+                  }
                 }
               },
               {
-                "property": {
-                  "value": "proficiency"
+                "actor": {
+                  "property": {
+                    "value": "proficiency"
+                  }
                 }
               }
             ]
           }
         },
         "damage_bonus": {
-          "property": {
-            "value": "dexterity_am"
+          "actor": {
+            "property": {
+              "value": "dexterity_am"
+            }
           }
         }
       },
@@ -461,13 +503,17 @@
                 "max": {
                   "arguments": [
                     {
-                      "property": {
-                        "value": "strength_am"
+                      "actor": {
+                        "property": {
+                          "value": "strength_am"
+                        }
                       }
                     },
                     {
-                      "property": {
-                        "value": "dexterity_am"
+                      "actor": {
+                        "property": {
+                          "value": "dexterity_am"
+                        }
                       }
                     }
                   ]
@@ -485,13 +531,17 @@
           "max": {
             "arguments": [
               {
-                "property": {
-                  "value": "strength_am"
+                "actor": {
+                  "property": {
+                    "value": "strength_am"
+                  }
                 }
               },
               {
-                "property": {
-                  "value": "dexterity_am"
+                "actor": {
+                  "property": {
+                    "value": "dexterity_am"
+                  }
                 }
               }
             ]
@@ -506,9 +556,11 @@
       ],
       "properties": {
         "damage_base": {
-          "roll": {
-            "count": 1,
-            "sides": 8
+          "actor": {
+            "roll": {
+              "count": 1,
+              "sides": 8
+            }
           }
         }
       }
@@ -531,9 +583,11 @@
       ],
       "properties": {
         "damage_base": {
-          "roll": {
-            "count": 1,
-            "sides": 10
+          "actor": {
+            "roll": {
+              "count": 1,
+              "sides": 10
+            }
           }
         }
       }
@@ -548,9 +602,11 @@
         "attack_bonus": 4,
         "damage_bonus": 2,
         "damage_base": {
-          "roll": {
-            "count": 1,
-            "sides": 6
+          "actor": {
+            "roll": {
+              "count": 1,
+              "sides": 6
+            }
           }
         }
       }
@@ -638,6 +694,9 @@
               "quantity",
               1
             ]
+          },
+          {
+            "profile": "start_turn"
           }
         ]
       }
@@ -921,14 +980,12 @@
       "name": "reaction",
       "initial": 1
     },
-    "spell_slot": {
-      "properties": [
-        "level"
-      ],
-      "value": 5
+    "dodge_token": {
+      "max_value": 1
     },
-    "dodge_token": {},
-    "disengage_token": {},
+    "disengage_token": {
+      "max_value": 1
+    },
     "life": {
       "initial": 1,
       "value": 100
@@ -939,11 +996,17 @@
           "value": "max_hp"
         }
       },
+      "max_value": {
+        "property": {
+          "value": "max_hp"
+        }
+      },
       "value": 2
     },
     "mischief": {
       "value": 1
-    }
+    },
+    "opportunity": {}
   },
   "games": {
     "basic": {
