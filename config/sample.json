@@ -52,6 +52,7 @@
         "rapier_action_attack",
         "rapier_opportunity_attack",
         "heavy_crossbow_attack",
+        "super_heavy_crossbow_attack",
         "disengage"
       ],
       "resources": [
@@ -592,6 +593,16 @@
         }
       }
     },
+    "super_heavy_crossbow_attack": {
+      "prototypes": [
+        "action_attack"
+      ],
+      "properties": {
+        "damage_base": {
+          "actor": 5
+        }
+      }
+    },
     "goblin_scimitar_attack": {
       "prototype": true,
       "prototypes": [
@@ -1018,86 +1029,70 @@
       "prototypes": [
         "basic"
       ],
-      "characters": [
-        {
-          "name": "Mr. Jazz",
-          "alignment": "monster",
-          "position": [
-            50,
-            20
-          ],
-          "initiative": {
-            "initiative": {
-              "bonus": 0
-            }
-          }
-        },
-        {
-          "name": "Super Goblin",
-          "alignment": "monster",
-          "position": [
-            50,
-            50
-          ],
-          "initiative": {
-            "alignment": {
-              "initiative": {
-                "bonus": 0
-              }
-            }
-          }
-        }
+      "match_characters": [
+        "1v1"
       ]
     },
     "1v2": {
       "prototypes": [
         "basic"
       ],
-      "characters": [
-        {
-          "name": "Mr. Jazz",
-          "alignment": "pc",
-          "position": [
-            50,
-            20
-          ],
-          "initiative": {
-            "initiative": {
-              "bonus": 0
-            }
-          }
-        },
-        {
-          "name": "Super Goblin",
-          "alignment": "monster",
-          "position": [
-            30,
-            50
-          ],
-          "initiative": {
-            "alignment": {
-              "initiative": {
-                "bonus": 0
-              }
-            }
-          }
-        },
-        {
-          "name": "Super Goblin",
-          "alignment": "monster",
-          "position": [
-            70,
-            50
-          ],
-          "initiative": {
-            "alignment": {
-              "initiative": {
-                "bonus": 0
-              }
-            }
-          }
-        }
+      "match_characters": [
+        "1v2"
       ]
     }
+  },
+  "match_characters": {
+    "Mr. Jazz": {
+      "name": "Mr. Jazz",
+      "alignment": "monster",
+      "position": [
+        50,
+        20
+      ],
+      "initiative": {
+        "initiative": {
+          "bonus": 0
+        }
+      }
+    },
+    "Super Goblin 1": {
+      "name": "Super Goblin",
+      "alignment": "monster",
+      "position": [
+        50,
+        50
+      ],
+      "initiative": {
+        "alignment": {
+          "initiative": {
+            "bonus": 0
+          }
+        }
+      }
+    },
+    "Super Goblin 2": {
+      "name": "Super Goblin",
+      "alignment": "monster",
+      "position": [
+        50,
+        50
+      ],
+      "initiative": {
+        "alignment": {
+          "initiative": {
+            "bonus": 0
+          }
+        }
+      }
+    },
+    "1v1": [
+      "Mr. Jazz",
+      "Super Goblin 1"
+    ],
+    "1v2": [
+      "1v1",
+      "Super Goblin 2"
+    ]
   }
 }
