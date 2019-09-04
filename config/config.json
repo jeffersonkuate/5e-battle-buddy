@@ -11,8 +11,10 @@
     "mutation_coefficient": 0.005,
     "fitness_improvement_threshold": 0.005,
     "strategy_grouping": {
-      "property": {
-        "value": "alignment"
+      "alignment": {
+        "property": {
+          "value": "name"
+        }
       }
     }
   },

@@ -9,7 +9,7 @@
       "prototypes": [
         "basic"
       ],
-      "match_characters": [
+      "game_characters": [
         "1v1"
       ]
     },
@@ -17,15 +17,15 @@
       "prototypes": [
         "basic"
       ],
-      "match_characters": [
+      "game_characters": [
         "1v2"
       ]
     }
   },
-  "match_characters": {
+  "game_characters": {
     "Mr. Jazz": {
       "name": "Mr. Jazz",
-      "alignment": "monster",
+      "alignment": "pc",
       "position": [
         50,
         20

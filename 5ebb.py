@@ -28,11 +28,12 @@ MATCH = 'game'
 MATCHES = 'games'
 CONFIG = 'config'
 CHARACTERS = 'characters'
+CHARACTER = 'character'
 SKILLS = 'skills'
 ABILITIES = 'abilities'
 RESOURCES = 'resources'
 STRATEGY = 'strategy'
-MATCH_CHARACTERS = 'match_characters'
+GAME_CHARACTERS = 'game_characters'
 
 # Strategy Manager Properties
 MAXIMUM_TURNS = 'maximum_turns'
@@ -197,8 +198,8 @@ def deep_copy(dictionary):
 def collapse_set(collection, context):
     new_set = []
     for value in collection:
-        if is_list(value):
-            new_set += collapse_set(value, context)
+        if is_list(context[value]):
+            new_set += collapse_set(context[value], context)
         else:
             new_set.append(context[value])
     return new_set
@@ -234,6 +235,8 @@ class Die:
 # Models
 
 class BasicContext(MutableMapping, Hashable):
+    environment = None
+
     def __eq__(self, obj):
         if is_map(obj):
             return self.get(NAME) == obj.get(NAME)
@@ -261,7 +264,7 @@ class BasicContext(MutableMapping, Hashable):
     def __init__(self, properties=None, name='', base=None):
         self.base = base
         self.name = name
-        self.properties = {}
+        self.properties = {NAME: name}
         self.initiative = None
         self.die = Die()
         self.effect_map = {}
@@ -467,8 +470,8 @@ class BasicContext(MutableMapping, Hashable):
     def get(self, key):
         if key == INITIATIVE:
             return self.get_initiative()
-        elif hasattr(self, key):
-            value = getattr(self, key)
+        elif hasattr(self, str(key)):
+            value = getattr(self, str(key))
         else:
             value = self.properties.get(key)
 
@@ -542,7 +545,7 @@ class Environment(BasicContext):
         if is_list(expression):
             ability = expression
         else:
-            ability = Skill(properties=expression, name=ability_name)
+            ability = Ability(properties=expression, name=ability_name)
         self.abilities[ability_name] = ability
 
     def add_resource(self, resource_name, expression):
@@ -585,8 +588,7 @@ class Resource(BasicContext):
 # Match
 
 class MatchContext(BasicContext):
-    def __init__(self, environment=None, properties=None, strategy_manager=None):
-        self.environment = environment
+    def __init__(self, properties=None, strategy_manager=None):
         self.board = Board(properties[BOARD_WIDTH], properties[BOARD_HEIGHT])
         self.alignments = []
         self.match_characters = []
@@ -594,9 +596,9 @@ class MatchContext(BasicContext):
         self.action_set_stack = []
         self.turn = 0
         self.strategy_manager = strategy_manager
-        super().__init__(properties, base=environment)
-        for character_name in properties[MATCH_CHARACTERS]:
-            self.add_match_character(environment.match_character_definitions[character_name])
+        super().__init__(properties, base=self.environment)
+        for character_set_name in properties[GAME_CHARACTERS]:
+            self.add_match_character(self.environment.match_character_definitions[character_set_name])
 
         self.set_match(self)
 
@@ -608,7 +610,7 @@ class MatchContext(BasicContext):
         if is_list(character):
             self.add_match_characters(character)
         else:
-            match_character = MatchCharacter(self.environment, character)
+            match_character = MatchCharacter(character)
             match_character.set_match(self)
             self.match_characters.append(match_character)
             self.initiative_set.add_character(match_character)
@@ -629,15 +631,15 @@ class MatchContext(BasicContext):
             if len(actions) > 0:
                 self.strategy_manager.get_strategy(actions[0].actor).choose_action(actions).act()
 
-    def no_conflict(self):
+    def is_conflict(self):
         alignments = []
         for character in self.match_characters:
             alignment = character.alignment
             if character.is_in_play() and alignment not in alignments:
                 alignments.append(alignment)
                 if len(alignments) > 1:
-                    return False
-        return True
+                    return True
+        return False
 
     def get_fitness(self, strategy_name):
         value = 0
@@ -710,17 +712,19 @@ class InitiativeSet(BasicContext):
         self.initiatives.sort(reverse=True)
 
 
-class MatchCharacter(Character):
-    def __init__(self, environment=None, properties=None, name='', base=None):
+class MatchCharacter(BasicContext):
+    def __init__(self, properties=None, name='', base=None):
         if name == '':
             name = properties[NAME]
         if base is None:
-            base = environment.characters[name]
+            base = self.environment.characters[name]
+        else:
+            base = base.re_context(self.environment.characters[name])
 
         self.match = None
         self.position = None
         self.match_initiative = None
-        self.match_skills = {}
+        self.skills = {}
         self.hook_map = {}
         self.hook_targeting = {}
         self.in_play = True
@@ -728,7 +732,7 @@ class MatchCharacter(Character):
         super().__init__(properties, name, base)
 
         self.alignment = MatchAlignment(name=properties[ALIGNMENT])
-        self.resources = MatchResourceSet(environment, self)
+        self.resources = MatchResourceSet(self)
         self.effect_map[ATTACK] = self.attack
         self.effect_map[CREDIT] = self.credit_func
         self.effect_map[DEBIT] = self.debit_func
@@ -745,46 +749,44 @@ class MatchCharacter(Character):
         self.hook_map[DAMAGE_TAKEN] = []
         self.hook_map[REMOVAL_FROM_PLAY] = []
         self.function_map[INITIATIVE] = self.get_initiative
-        skills = [environment.skills[skill_name] for skill_name in list(base.skills)]
-        abilities = [environment.abilities[ability_name] for ability_name in list(base.abilities)]
-        self.add_skills(skills)
-        self.add_abilities(abilities)
+        skills = [self.environment.skills[skill_name] for skill_name in base.skills]
+        abilities = [self.environment.abilities[ability_name] for ability_name in base.abilities]
+        self.create_skills(skills)
+        self.create_abilities(abilities)
 
         x = properties[POSITION][0]
         y = properties[POSITION][1]
         self.set(POSITION, Position(x, y))
 
-    def add_skills(self, skills):
+    def create_skills(self, skills):
         for skill in skills:
-            self.add_skill(skill)
+            self.create_skill(skill)
 
-    def add_skill(self, skill):
+    def create_skill(self, skill):
         if is_list(skill):
-            self.add_skills(skill)
+            self.create_skills(skill)
         else:
-            self.match_skills[skill.name] = skill
+            self.skills[skill.name] = skill
 
-    def add_abilities(self, abilities):
+    def create_abilities(self, abilities):
         for ability in abilities:
-            self.add_ability(ability)
+            self.create_ability(ability)
 
-    def add_ability(self, ability):
+    def create_ability(self, ability):
         if is_list(ability):
-            self.add_abilities(ability)
+            self.create_abilities(ability)
         else:
-            self.add_hook(ability[HOOK][PROFILE], ability[TRIGGER])
-
-    def add_hook(self, hook, trigger):
-        self.hook_map[hook].append(trigger)
+            self.hook_map[ability[HOOK][PROFILE]].append(ability)
 
     def trigger_hook(self, hook_name):
-        for trigger in self.hook_map[hook_name]:
-            targeting = get_targeting(self.hook_targeting.get(hook_name), base=self)
-            targets = targeting.get_targets()
-            target = None
-            if len(targets) > 0:
-                target = targets[0]
-            targeting.act(self.re_context(target), Trigger(trigger))
+        for ability in self.hook_map[hook_name]:
+            if self.check_conditions(ability.conditions):
+                targeting = get_targeting(self.hook_targeting.get(hook_name), base=self)
+                targets = targeting.get_targets()
+                target = None
+                if len(targets) > 0:
+                    target = targets[0]
+                targeting.act(self.re_context(target), Trigger(ability.trigger))
 
     def get_actions(self):
         actions = []
@@ -911,7 +913,7 @@ class Trigger(BasicContext):
     def __init__(self, properties=None, name='', base=None):
         super().__init__(properties, name=name, base=base)
         self.conditions = properties.get(CONDITIONS)
-        self.effects = properties.get[EFFECTS]
+        self.effects = properties.get(EFFECTS)
         self.success_effects = properties.get(SUCCESS_EFFECTS)
         self.failure_effects = properties.get(FAILURE_EFFECTS)
 
@@ -926,9 +928,23 @@ class Trigger(BasicContext):
 
 
 class MatchResourceSet(BasicContext):
-    def __init__(self, environment=None, character=None, properties=None, name='', base=None):
-        self.resource_definitions = environment.resources
-        self.resources = {}
+    def __init__(self, character=None, properties=None, name='', base=None):
+        if properties is None:
+            properties = {}
+
+        if properties.get(RESOURCES) is None:
+            resources = {}
+        else:
+            resources = properties.get(RESOURCES)
+
+        if character is None:
+            if properties is not None:
+                character = properties.get(CHARACTER)
+        else:
+            properties[CHARACTER] = character
+
+        self.resource_definitions = self.environment.resources
+        self.resources = resources
         self.character = character
         super().__init__(properties, name, base)
 
@@ -1009,12 +1025,20 @@ class Position(BasicContext):
     def __str__(self):
         return '[' + str(self.x) + ', ' + str(self.y) + ']'
 
+    def get(self, key):
+        if key == 0:
+            return self.x
+        elif key == 1:
+            return self.y
+        else:
+            return super().get(key)
+
 
 # Strategy
 
 class StrategyManager:
-    def __init__(self, environment, match_data, expression):
-        self.environment = environment
+    def __init__(self, match_data, expression):
+        self.environment = BasicContext.environment
         self.character_templates = []
         self.match_data = match_data
         self.match = None
@@ -1030,9 +1054,14 @@ class StrategyManager:
         self.strategy_grouping = expression[STRATEGY_GROUPING]
 
         self.strategies = {}
-        for definition_name in match_data[MATCH_CHARACTERS]:
-            for definition in environment.match_character_definitions[definition_name]:
+        for definition_name in match_data[GAME_CHARACTERS]:
+            for definition in self.environment.match_character_definitions[definition_name]:
                 self.add_match_character(definition)
+
+        for character_template in self.character_templates:
+            strategy_name = character_template.eval(self.strategy_grouping)
+            if strategy_name not in self.strategies:
+                self.strategies[strategy_name] = Strategy(self, strategy_name)
 
     def add_match_characters(self, characters):
         for character in characters:
@@ -1042,11 +1071,8 @@ class StrategyManager:
         if is_list(character):
             self.add_match_characters(character)
         else:
-            match_character = MatchCharacter(self.environment, character)
-            self.character_templates.append(match_character)
-            strategy_name = match_character.eval(self.strategy_grouping)
-            if strategy_name not in self.strategies:
-                self.strategies[strategy_name] = Strategy(self, strategy_name)
+            character_template = MatchCharacter(character)
+            self.character_templates.append(character_template)
 
     def get_match(self):
         return self.match
@@ -1080,11 +1106,18 @@ class StrategyManager:
                 strategy2 = mergeable_strategies.pop()
                 strategies.append(strategy1.merge(strategy2))
 
+            i = 0
+            for strategy in strategies:
+                print("Strategy " + str(i) + ":")
+                for node in strategy.nodes:
+                    print(str(node) + "\n==========\n")
+                i += 1
+
             for strategy in strategies:
                 fitness = 0
                 for i in range(self.simulations_per_generation):
                     self.strategies[strategy_name] = strategy
-                    match_context = MatchContext(self.environment, self.match_data, self)
+                    match_context = MatchContext(self.match_data, self)
 
                     self.match = match_context
                     match_context.simulate()
@@ -1117,7 +1150,7 @@ class StrategyManager:
         return trim(strategies, self.merged_strategy_count, lambda strategy: strategy.fitness)
 
     def is_ongoing(self, match_context):
-        return (match_context.no_conflict()) and (match_context.turn <= self.maximum_turns)
+        return (match_context.is_conflict()) and (match_context.turn <= self.maximum_turns)
 
     def get_random_weight(self):
         return random.randint(0, 10)
@@ -1133,7 +1166,7 @@ class Strategy:
         self.nodes = nodes
 
     def merge(self, strategy):
-        strategy = Strategy(self.strategy_manager, self.name, self.nodes+strategy.nodes)
+        strategy = Strategy(self.strategy_manager, self.name, self.nodes + strategy.nodes)
         strategy.nodes = trim(strategy.nodes,
                               self.strategy_manager.max_strategy_complexity,
                               sort_value=lambda node: node.fitness)
@@ -1174,7 +1207,7 @@ class Node:
         self.fitness = 0
 
     def mutate(self):
-        return Node(self.strategy_manager, self.weight+random.randint(-1, 1))
+        return Node(self.strategy_manager, self.weight + random.randint(-1, 1))
 
     def weigh(self, action):
         if self.check_action(action):
@@ -1252,8 +1285,8 @@ class MetaCharacter(BasicContext):
         super().__init__(properties, name, base)
         self.strategy_manager = strategy_manager
         if characters is None:
-            characters = strategy_manager.character_templates
-        characters.append(None)
+            characters = [character for character in strategy_manager.character_templates]
+            characters.append(None)
         self.character = random.choice(characters)
 
     def check(self, target):
@@ -1274,9 +1307,9 @@ class MetaAction(BasicContext):
     def __init__(self, strategy_manager=None, properties=None, name='', base=None):
         super().__init__(properties, name, base)
         self.strategy_manager = strategy_manager
-        # TODO specify characters
-        self.actor = MetaCharacter(strategy_manager, characters=strategy_manager.character_templates)
-        act_names = [] if self.actor.character is None else [skill.name for skill in self.actor.character.skills]
+        actors = [strategy for strategy in strategy_manager.character_templates]
+        self.actor = MetaCharacter(strategy_manager, characters=actors)
+        act_names = [] if self.actor.character is None else [skill for skill in self.actor.character.skills]
         name = ''
         if len(act_names) > 0:
             name = random.choice(act_names)
@@ -1287,7 +1320,7 @@ class MetaAction(BasicContext):
 
     def __str__(self):
         string = ''
-        string += '[' + self.actor.name + '] ' + str(self.act)
+        string += '[' + str(self.actor) + '] ' + str(self.act)
         return string
 
 
@@ -1302,7 +1335,10 @@ class MetaAct(BasicContext):
 
     def __str__(self):
         string = ''
-        string += '[' + self.name + '] at' + self.target.name
+        name = self.name
+        if name == '':
+            name = 'anything'
+        string += 'do [' + name + '] at [' + str(self.target) + ']'
         return string
 
 
@@ -1310,6 +1346,7 @@ class MetaAct(BasicContext):
 
 def unload_config(config):
     environment = Environment()
+    BasicContext.environment = environment
 
     characters = get_concretes(config[CHARACTERS])
     for character_name in characters:
@@ -1327,11 +1364,11 @@ def unload_config(config):
     for resource_name in resources:
         environment.add_resource(resource_name, resources[resource_name])
 
-    match_characters = get_concretes(config[MATCH_CHARACTERS])
+    match_characters = get_concretes(config[GAME_CHARACTERS])
     environment.match_character_definitions = match_characters
 
     match_data = get_concretes(config[MATCHES])[config[MATCH]]
-    return StrategyManager(environment, match_data, config[STRATEGY])
+    return StrategyManager(match_data, config[STRATEGY])
 
 
 def load_config():
@@ -1356,6 +1393,8 @@ def get_concretes(expression):
         if is_list(value):
             concretes[key] = collapse_set(value, expression)
         else:
+            if value.get(NAME) is None:
+                value[NAME] = key
             if not value.get(PROTOTYPE):
                 value[PROTOTYPE] = False
 
@@ -1387,7 +1426,6 @@ def report_strategy(strategy, display):
         report += '======='
         report += str(node)
     display.input(string=report, prompt='Press enter to continue:')
-
 
 
 def checked_input(display, string='', prompt='', reg=REGEX_ALL):
