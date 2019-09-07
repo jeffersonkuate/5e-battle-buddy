@@ -5,30 +5,6 @@
       "targeting": {
         "profile": "self"
       },
-      "conditions": [
-        {
-          "any": {
-            "arguments": [
-              {
-                "map": {
-                  "arguments": [
-                    {
-                      "property": {
-                        "value": "resources"
-                      }
-                    },
-                    {
-                      "property": {
-                        "value": "compulsory"
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-      ],
       "trigger": {
         "effects": [
           {
@@ -67,17 +43,9 @@
           },
           {
             "profile": "debit",
+            "target": "actor",
             "arguments": [
-              {
-                "actor": {
-                  "resources": {
-                    "property": {
-                      "value": "movement"
-                    }
-                  }
-                }
-              },
-              "quantity",
+              "movement",
               1
             ]
           }
@@ -170,21 +138,8 @@
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "get": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": {
-                            "property": {
-                              "value": "attack_resource"
-                            }
-                          }
-                        }
-                      },
-                      "quantity"
-                    ]
-                  }
+                "quantity": {
+                  "value": "attack_resource"
                 }
               },
               {
@@ -260,21 +215,9 @@
         "effects": [
           {
             "profile": "debit",
+            "target": "actor",
             "arguments": [
-              {
-                "actor": {
-                  "resources": {
-                    "property": {
-                      "value": {
-                        "property": {
-                          "value": "attack_resource"
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              "quantity",
+              "attack_resource",
               1
             ]
           }
@@ -298,6 +241,7 @@
     "opportunity_attack": {
       "prototype": true,
       "profile": "opportunity_attack",
+      "conditions": [false],
       "prototypes": [
         "multi-resource-attack"
       ],

@@ -1,6 +1,8 @@
 {
   "characters": {
     "Mr. Jazz": {
+      "prototype": true,
+      "name": "Mr. Jazz",
       "class": "Bard",
       "race": "Gnome",
       "level": 4,
@@ -41,6 +43,8 @@
       ]
     },
     "Super Goblin": {
+      "prototype": true,
+      "name": "Super Goblin",
       "armor_class": 15,
       "base_speed": 30,
       "strength": 8,
@@ -70,6 +74,78 @@
         "life",
         "hit_point"
       ]
-    }
+    },
+    "PC1": {
+      "prototypes": [
+        "Mr. Jazz"
+      ],
+      "name": "Mr. Jazz",
+      "alignment": "pc",
+      "position": [
+        50,
+        20
+      ],
+      "initiative": {
+        "addition": {
+          "arguments": [
+            {
+              "roll": {
+                "count": 1,
+                "sides": 20
+              }
+            },
+            {
+              "property": {
+                "value": "initiative_bonus"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Monster1": {
+      "prototypes": [
+        "Super Goblin"
+      ],
+      "name": "Super Goblin",
+      "alignment": "monster",
+      "position": [
+        50,
+        50
+      ],
+      "initiative": {
+        "alignment": {
+          "property": {
+            "value": "initiative"
+          }
+        }
+      }
+    },
+    "Monster2": {
+      "prototypes": [
+        "Super Goblin"
+      ],
+      "name": "Super Goblin",
+      "alignment": "monster",
+      "position": [
+        50,
+        50
+      ],
+      "initiative": {
+        "alignment": {
+          "property": {
+            "value": "initiative"
+          }
+        }
+      }
+    },
+    "1v1": [
+      "PC1",
+      "Monster1"
+    ],
+    "1v2": [
+      "1v1",
+      "Monster2"
+    ]
   }
 }

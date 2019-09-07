@@ -19,10 +19,10 @@
       "initial": 1
     },
     "dodge_token": {
-      "max_value": 1
+      "max_quantity": 1
     },
     "disengage_token": {
-      "max_value": 1
+      "max_quantity": 1
     },
     "life": {
       "initial": 1,
@@ -34,7 +34,7 @@
           "value": "max_hp"
         }
       },
-      "max_value": {
+      "max_quantity": {
         "property": {
           "value": "max_hp"
         }

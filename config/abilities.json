@@ -6,8 +6,33 @@
       "dodge_discard",
       "disengage",
       "disengage_discard",
-      "mortal"
+      "mortal",
+      "initialize"
     ],
+    "initialize": {
+      "hook": {
+        "profile": "initialize"
+      },
+      "trigger": {
+        "effects": [
+          {
+            "profile": "set",
+            "arguments": [
+              "hit_point",
+              {
+                "resources": {
+                  "hit_point": {
+                    "property": {
+                      "value": "initial"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
     "basic_turn": {
       "hook": {
         "profile": "start_turn"
@@ -17,61 +42,30 @@
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "movement"
-                  }
-                }
-              },
-              "quantity",
+              "movement",
               1
             ]
           },
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "action"
-                  }
-                }
-              },
-              "quantity",
+              "action",
               1
             ]
           },
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "bonus_action"
-                  }
-                }
-              },
-              "quantity",
+              "bonus_action",
               1
             ]
           },
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "reaction"
-                  }
-                }
-              },
-              "quantity",
+              "reaction",
               1
             ]
-          },
-          {
-            "profile": "start_turn"
           }
         ]
       }
@@ -85,17 +79,12 @@
           {
             "profile": "debit",
             "arguments": [
+              "mischief",
               {
-                "resources": {
+                "attributes": {
                   "property": {
-                    "value": "mischief"
+                    "value": "damage"
                   }
-                }
-              },
-              "quantity",
-              {
-                "property": {
-                  "value": "value"
                 }
               }
             ]
@@ -109,50 +98,50 @@
       },
       "conditions": [
         {
-          "current_roll": {
-            "or": {
-              "arguments": [
-                {
-                  "contains": {
-                    "arguments": [
-                      {
+          "or": {
+            "arguments": [
+              {
+                "contains": {
+                  "arguments": [
+                    {
+                      "attributes": {
                         "property": {
-                          "value": "attributes"
+                          "value": "tags"
                         }
-                      },
-                      "magic",
-                      "wisdom"
-                    ]
-                  }
-                },
-                {
-                  "contains": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": "attributes"
-                        }
-                      },
-                      "magic",
-                      "charisma"
-                    ]
-                  }
-                },
-                {
-                  "contains": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": "attributes"
-                        }
-                      },
-                      "magic",
-                      "intelligence"
-                    ]
-                  }
+                      }
+                    },
+                    "magic",
+                    "wisdom"
+                  ]
                 }
-              ]
-            }
+              },
+              {
+                "contains": {
+                  "arguments": [
+                    {
+                      "property": {
+                        "value": "attributes"
+                      }
+                    },
+                    "magic",
+                    "charisma"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "arguments": [
+                    {
+                      "property": {
+                        "value": "attributes"
+                      }
+                    },
+                    "magic",
+                    "intelligence"
+                  ]
+                }
+              }
+            ]
           }
         }
       ],
@@ -173,12 +162,8 @@
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "dodge_token": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "dodge_token"
                 }
               },
               1
@@ -186,23 +171,17 @@
           }
         },
         {
-          "current_roll": {
-            "or": {
-              "arguments": [
-                {
-                  "contains": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": "attributes"
-                        }
-                      },
-                      "attack"
-                    ]
+          "contains": {
+            "arguments": [
+              {
+                "attributes": {
+                  "property": {
+                    "value": "tags"
                   }
                 }
-              ]
-            }
+              },
+              "attack"
+            ]
           }
         }
       ],
@@ -223,14 +202,7 @@
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "dodge_token"
-                  }
-                }
-              },
-              "quantity",
+              "dodge_token",
               0
             ]
           }
@@ -247,12 +219,8 @@
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "disengage_token": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "disengage_token"
                 }
               },
               1
@@ -263,30 +231,7 @@
       "trigger": {
         "effects": [
           {
-            "profile": "disengage"
-          }
-        ]
-      }
-    },
-    "disengage_discard": {
-      "hook": {
-        "profile": "end_turn"
-      },
-      "trigger": {
-        "effects": [
-          {
-            "profile": "set",
-            "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "disengage_token"
-                  }
-                }
-              },
-              "quantity",
-              0
-            ]
+            "profile": "TODO"
           }
         ]
       }
@@ -297,18 +242,14 @@
       },
       "conditions": [
         {
-          "greater_or_equal": {
+          "greater": {
             "arguments": [
               {
-                "resources": {
-                  "hit_point": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "hit_point"
                 }
               },
-              1
+              0
             ]
           }
         }
@@ -318,14 +259,7 @@
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "life"
-                  }
-                }
-              },
-              "quantity",
+              "life",
               0
             ]
           },
