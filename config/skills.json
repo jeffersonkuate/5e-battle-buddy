@@ -59,12 +59,8 @@
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "action": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "action"
                 }
               },
               1
@@ -77,14 +73,7 @@
           {
             "profile": "credit",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "dodge_token"
-                  }
-                }
-              },
-              "quantity",
+              "dodge_token",
               1
             ]
           }
@@ -98,12 +87,8 @@
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "action": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "action"
                 }
               },
               1
@@ -116,14 +101,7 @@
           {
             "profile": "credit",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "disengage_token"
-                  }
-                }
-              },
-              "quantity",
+              "disengage_token",
               1
             ]
           }
@@ -139,94 +117,69 @@
             "arguments": [
               {
                 "quantity": {
-                  "value": "attack_resource"
+                  "value": "$attack_resource"
                 }
               },
-              {
-                "property": {
-                  "value": "attack_cost"
-                }
-              }
+              "$attack_cost"
             ]
           }
         }
       ],
       "trigger": {
-        "conditions": [
-          {
-            "greater_or_equal": {
-              "arguments": [
-                {
-                  "add": {
-                    "arguments": [
-                      {
-                        "roll": {
-                          "count": 1,
-                          "sides": 20
-                        }
-                      },
-                      {
-                        "eval": {
-                          "property": {
-                            "value": "attack_bonus"
-                          }
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  "targeting": {
-                    "property": {
-                      "value": "armor_class"
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        ],
-        "success_effects": [
+        "effects": [
           {
             "profile": "attack",
-            "type": "piercing",
-            "value": {
+            "type": "$damage_type",
+            "hit_metric": "$hit_metric",
+            "save_metric": "$save_metric",
+            "hit_conditions": [
+              {
+                "greater_or_equal": {
+                  "arguments": [
+                    {
+                      "attack_attributes": {
+                        "property": {
+                          "value": "hit_metric"
+                        }
+                      }
+                    },
+                    {
+                      "attack_attributes": {
+                        "property": {
+                          "value": "save_metric"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "damage": {
               "add": {
                 "arguments": [
-                  {
-                    "eval": {
-                      "property": {
-                        "value": "damage_base"
-                      }
-                    }
-                  },
-                  {
-                    "eval": {
-                      "property": {
-                        "value": "damage_bonus"
-                      }
-                    }
-                  }
+                  "$damage_base",
+                  "$damage_bonus"
                 ]
               }
             }
-          }
-        ],
-        "effects": [
+          },
           {
             "profile": "debit",
             "target": "actor",
             "arguments": [
-              "attack_resource",
+              "$attack_resource",
               1
             ]
           }
         ]
+      },
+      "properties": {
+        "$save_metric": {
+          "property": {
+            "value": "armor_class"
+          }
+        }
       }
-    },
-    "multi-resource-attack": {
-      "prototype": true,
-      "conditions": false
     },
     "action_attack": {
       "prototype": true,
@@ -235,21 +188,20 @@
         "attack"
       ],
       "properties": {
-        "attack_resource": "action"
+        "$attack_resource": "action"
       }
     },
     "opportunity_attack": {
       "prototype": true,
       "profile": "opportunity_attack",
-      "conditions": [false],
+      "conditions": [
+        false
+      ],
       "prototypes": [
-        "multi-resource-attack"
+        "attack"
       ],
       "properties": {
-        "attack_resource": [
-          "reaction",
-          "opportunity"
-        ]
+        "$attack_resource": "reaction"
       }
     },
     "melee_weapon_attack": {
@@ -258,10 +210,18 @@
         "attack"
       ],
       "properties": {
-        "attack_cost": 1,
-        "attack_bonus": {
-          "add": {
+        "$attack_cost": 1,
+        "$hit_metric": {
+          "addition": {
             "arguments": [
+              {
+                "actor": {
+                  "roll": {
+                    "count": 1,
+                    "sides": 20
+                  }
+                }
+              },
               {
                 "actor": {
                   "property": {
@@ -279,7 +239,7 @@
             ]
           }
         },
-        "damage_bonus": {
+        "$damage_bonus": {
           "actor": {
             "property": {
               "value": "strength_am"
@@ -299,10 +259,18 @@
         "attack"
       ],
       "properties": {
-        "attack_cost": 1,
-        "attack_bonus": {
-          "add": {
+        "$attack_cost": 1,
+        "$hit_metric": {
+          "addition": {
             "arguments": [
+              {
+                "actor": {
+                  "roll": {
+                    "count": 1,
+                    "sides": 20
+                  }
+                }
+              },
               {
                 "actor": {
                   "property": {
@@ -320,7 +288,7 @@
             ]
           }
         },
-        "damage_bonus": {
+        "$damage_bonus": {
           "actor": {
             "property": {
               "value": "dexterity_am"
@@ -330,10 +298,6 @@
       },
       "targeting": {
         "profile": "ranged_attack",
-        "range": [
-          100,
-          400
-        ],
         "affinity": "hostile"
       }
     },
@@ -343,8 +307,8 @@
         "melee_weapon_attack"
       ],
       "properties": {
-        "attack_cost": 1,
-        "attack_bonus": {
+        "$attack_cost": 1,
+        "$attack_bonus": {
           "add": {
             "arguments": [
               {
@@ -375,7 +339,7 @@
             ]
           }
         },
-        "damage_bonus": {
+        "$damage_bonus": {
           "max": {
             "arguments": [
               {
@@ -403,7 +367,7 @@
         "finesse_weapon_attack"
       ],
       "properties": {
-        "damage_base": {
+        "$damage_base": {
           "actor": {
             "roll": {
               "count": 1,
@@ -430,7 +394,7 @@
         "action_attack"
       ],
       "properties": {
-        "damage_base": {
+        "$damage_base": {
           "actor": {
             "roll": {
               "count": 1,
@@ -445,7 +409,7 @@
         "action_attack"
       ],
       "properties": {
-        "damage_base": {
+        "$damage_base": {
           "actor": 5
         }
       }
@@ -456,10 +420,9 @@
         "attack"
       ],
       "properties": {
-        "attack_cost": 1,
-        "attack_bonus": 4,
-        "damage_bonus": 2,
-        "damage_base": {
+        "$attack_bonus": 4,
+        "$damage_bonus": 2,
+        "$damage_base": {
           "actor": {
             "roll": {
               "count": 1,

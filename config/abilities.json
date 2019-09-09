@@ -81,7 +81,7 @@
             "arguments": [
               "mischief",
               {
-                "attributes": {
+                "damage_attributes": {
                   "property": {
                     "value": "damage"
                   }
@@ -104,7 +104,7 @@
                 "contains": {
                   "arguments": [
                     {
-                      "attributes": {
+                      "attack_attributes": {
                         "property": {
                           "value": "tags"
                         }
@@ -120,7 +120,7 @@
                   "arguments": [
                     {
                       "property": {
-                        "value": "attributes"
+                        "value": "attack_attributes"
                       }
                     },
                     "magic",
@@ -133,7 +133,7 @@
                   "arguments": [
                     {
                       "property": {
-                        "value": "attributes"
+                        "value": "attack_attributes"
                       }
                     },
                     "magic",
@@ -174,13 +174,13 @@
           "contains": {
             "arguments": [
               {
-                "attributes": {
+                "attack_attributes": {
                   "property": {
                     "value": "tags"
                   }
                 }
               },
-              "attack"
+              "physical"
             ]
           }
         }

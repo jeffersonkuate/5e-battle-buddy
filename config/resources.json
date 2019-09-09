@@ -8,8 +8,7 @@
       }
     },
     "action": {
-      "initial": 1,
-      "compulsory": true
+      "initial": 1
     },
     "bonus_action": {
       "initial": 1

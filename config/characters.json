@@ -6,7 +6,7 @@
       "class": "Bard",
       "race": "Gnome",
       "level": 4,
-      "proficiency": 2,
+      "proficiency_bonus": 2,
       "armor_class": 17,
       "initiative_bonus": 4,
       "spell_save": 12,
