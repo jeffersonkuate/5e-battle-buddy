@@ -178,7 +178,8 @@
           "property": {
             "value": "armor_class"
           }
-        }
+        },
+        "$damage_type": ["physical"]
       }
     },
     "action_attack": {

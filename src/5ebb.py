@@ -1,11 +1,7 @@
 import os
 import json
-import re
-from display import Display
-from json_def import *
-from basics import *
-from match import *
-from strategy import *
+from src.display import Display
+from src.strategy import *
 
 
 # Driver
@@ -62,12 +58,11 @@ def get_concretes(expression):
     for v_key in values:
         value = values[v_key]
         if not value.get(PROTOTYPE):
-            properties = value[PROPERTIES]
-            if properties is None:
-                properties = {}
-            for p_key in properties:
-                p_value = properties[p_key]
-                map_dict(value, lambda x: check_and_replace(x, p_key, p_value))
+            properties = pop(value, PROPERTIES)
+            if properties is not None:
+                for p_key in properties:
+                    p_value = properties[p_key]
+                    map_dict(value, lambda x: check_and_replace(x, p_key, p_value))
 
             concretes[v_key] = value
 

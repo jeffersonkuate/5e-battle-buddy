@@ -5,7 +5,6 @@
       "dodge",
       "dodge_discard",
       "disengage",
-      "disengage_discard",
       "mortal",
       "initialize"
     ],
@@ -244,12 +243,12 @@
         {
           "greater": {
             "arguments": [
+              0,
               {
                 "quantity": {
                   "value": "hit_point"
                 }
-              },
-              0
+              }
             ]
           }
         }

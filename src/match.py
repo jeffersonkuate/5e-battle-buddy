@@ -1,6 +1,6 @@
 import math
-from basics import *
-from json_def import *
+from src.basics import *
+from src.json_def import *
 
 
 # Match
@@ -60,10 +60,13 @@ class MatchContext(BasicContext):
         return value
 
     def __str__(self):
-        string = 'Game: ' + self.name
-        for character in self.match_characters:
-            string += '\n' + str(character)
-        return string
+        try:
+            string = 'Game: ' + self.name
+            for character in self.match_characters:
+                string += '\n' + str(character)
+            return string
+        except Exception:
+            return super().__str__()
 
 
 class InitiativeSet(BasicContext):
@@ -239,20 +242,20 @@ class MatchCharacter(BasicContext):
     def roll(self, expression):
         self.set_temp(ROLL_ATTRIBUTES, {CURRENT_ROLL: super().roll(expression)})
         self.trigger_hook(ROLL)
-        roll = self.get(ROLL_ATTRIBUTES[CURRENT_ROLL])
+        roll = self.get(ROLL_ATTRIBUTES)[CURRENT_ROLL]
         self.clear_temp(ROLL_ATTRIBUTES)
         return roll
 
     def credit_effect(self, expression):
-        self.get_temp(expression[TARGET]).resources.get(expression[ARGUMENTS][0]).credit(
+        self.get_temp(expression.get(TARGET)).resources.get(expression[ARGUMENTS][0]).credit(
             self.eval(expression[ARGUMENTS][1]))
 
     def debit_effect(self, expression):
-        self.get_temp(expression[TARGET]).resources.get(expression[ARGUMENTS][0]).debit(
+        self.get_temp(expression.get(TARGET)).resources.get(expression[ARGUMENTS][0]).debit(
             self.eval(expression[ARGUMENTS][1]))
 
     def set_effect(self, expression):
-        self.get_temp(expression[TARGET]).resources.get(expression[ARGUMENTS][0]).set_func(
+        self.get_temp(expression.get(TARGET)).resources.get(expression[ARGUMENTS][0]).set_func(
             self.eval(expression[ARGUMENTS][1]))
 
     def get_quantity(self, expression):
@@ -275,9 +278,12 @@ class MatchCharacter(BasicContext):
             return super().get(key)
 
     def __str__(self):
-        return ('\n' + self.name + ' (' + str(self.position) + '): '
-                + str(self.resources.get(HIT_POINT).get_quantity()) + '/'
-                + str(self.resources.get(HIT_POINT).get_max_value()))
+        try:
+            return ('\n' + self.name + ' (' + str(self.position) + '): '
+                    + str(self.resources.get(HIT_POINT).get_quantity()) + '/'
+                    + str(self.resources.get(HIT_POINT).get_max_quantity()))
+        except Exception:
+            return super().__str__()
 
 
 class MatchAlignment(BasicContext):
@@ -354,7 +360,7 @@ class SingleTargeting(Targeting):
         super().__init__(properties, name, base)
 
     def get_targets(self):
-        return [self.get_match().match_characters]
+        return [character for character in self.get_match().match_characters if character is not self.base]
 
 
 # TODO: add more targeting
@@ -432,8 +438,8 @@ class MatchResourceSet(BasicContext):
     def set_func(self, resource, value):
         name = resource.name
         resource.quantity = value
-        if value > resource.max_value:
-            value = resource.max_value
+        if value > resource.max_quantity:
+            value = resource.max_quantity
 
         if value > 0:
             self.resources[name] = resource
@@ -476,7 +482,7 @@ class MatchResource(BasicContext):
     def get_quantity(self):
         return self.quantity
 
-    def get_max_value(self):
+    def get_max_quantity(self):
         return self.max_quantity
 
     def get_damage(self):
@@ -497,7 +503,10 @@ class Position(BasicContext):
         self.y = y
 
     def __str__(self):
-        return '[' + str(self.x) + ', ' + str(self.y) + ']'
+        try:
+            return '[' + str(self.x) + ', ' + str(self.y) + ']'
+        except Exception:
+            return super().__str__()
 
     def get(self, key):
         if key == 0:

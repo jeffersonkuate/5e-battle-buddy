@@ -1,7 +1,5 @@
-import random
-from basics import *
-from match import *
-from json_def import *
+from src.match import *
+from src.json_def import *
 
 
 # Strategy
@@ -33,16 +31,19 @@ class StrategyManager:
         for character_template in self.character_templates:
             strategy_name = character_template.eval(self.strategy_grouping)
             if strategy_name not in self.strategies:
-                self.strategies[strategy_name] = Strategy(self, strategy_name)
+                self.strategies[strategy_name] = Strategy(self, name=strategy_name)
 
     def get_match(self):
         return self.match
 
     def get_strategy(self, character):
-        strategy_name = character.eval(self.strategy_grouping)
+        strategy_name = self.get_strategy_name(character)
         if self.strategies.get(strategy_name) is None:
-            self.strategies[strategy_name] = Strategy(self, strategy_name)
+            self.strategies[strategy_name] = Strategy(self, name=strategy_name)
         return self.strategies[strategy_name]
+
+    def get_strategy_name(self, character):
+        return character.eval(self.strategy_grouping)
 
     def optimize(self, strategy_name):
         cloneable_strategies = []
@@ -67,12 +68,12 @@ class StrategyManager:
                 strategy2 = mergeable_strategies.pop()
                 strategies.append(strategy1.merge(strategy2))
 
-            i = 0
-            for strategy in strategies:
-                print("Strategy " + str(i) + ":")
-                for node in strategy.nodes:
-                    print(str(node) + "\n==========\n")
-                i += 1
+            # i = 0
+            # for strategy in strategies:
+            #     print("Strategy " + str(i) + ":")
+            #     for node in strategy.nodes:
+            #         print(str(node) + "\n==========\n")
+            #     i += 1
 
             for strategy in strategies:
                 fitness = 0
@@ -123,7 +124,7 @@ class Strategy:
         self.name = name
         self.fitness = 0
         if nodes is None:
-            nodes = [Node(strategy_manager, strategy_manager.get_random_weight())]
+            nodes = [Node(strategy_manager, self, strategy_manager.get_random_weight())]
         self.nodes = nodes
 
     def merge(self, strategy):
@@ -160,15 +161,16 @@ class Strategy:
 
 
 class Node:
-    def __init__(self, strategy_manager, weight=0):
+    def __init__(self, strategy_manager, strategy, weight=0):
         self.strategy_manager = strategy_manager
-        self.condition = MetaCondition(strategy_manager)
-        self.action = MetaAction(strategy_manager)
+        self.strategy = strategy
         self.weight = weight
         self.fitness = 0
+        self.condition = MetaCondition(strategy_manager)
+        self.action = MetaAction(strategy_manager, strategy)
 
     def mutate(self):
-        return Node(self.strategy_manager, self.weight + random.randint(-1, 1))
+        return Node(self.strategy_manager, self.strategy, self.weight + random.randint(-1, 1))
 
     def weigh(self, action):
         if self.check_action(action):
@@ -241,34 +243,12 @@ class DamageMetaStatus(BasicContext):
         return string
 
 
-class MetaCharacter(BasicContext):
-    def __init__(self, strategy_manager=None, characters=None, properties=None, name='', base=None):
-        super().__init__(properties, name, base)
-        self.strategy_manager = strategy_manager
-        if characters is None:
-            characters = [character for character in strategy_manager.character_templates]
-            characters.append(None)
-        self.character = random.choice(characters)
-
-    def check(self, target):
-        character = self.character
-        if character is None:
-            return True
-        else:
-            return target.name == character.name
-
-    def __str__(self):
-        if self.character is None:
-            return 'Anyone'
-        else:
-            return self.character.name
-
-
 class MetaAction(BasicContext):
-    def __init__(self, strategy_manager=None, properties=None, name='', base=None):
+    def __init__(self, strategy_manager=None, strategy=None, properties=None, name='', base=None):
         super().__init__(properties, name, base)
         self.strategy_manager = strategy_manager
-        actors = [strategy for strategy in strategy_manager.character_templates]
+        actors = [character for character in strategy_manager.character_templates
+                  if strategy_manager.get_strategy_name(character) is not strategy.name]
         self.actor = MetaCharacter(strategy_manager, characters=actors)
         act_names = [] if self.actor.character is None else [skill for skill in self.actor.character.skills]
         name = ''
@@ -301,3 +281,26 @@ class MetaAct(BasicContext):
             name = 'anything'
         string += 'do [' + name + '] at [' + str(self.target) + ']'
         return string
+
+
+class MetaCharacter(BasicContext):
+    def __init__(self, strategy_manager=None, strategy=None, characters=None, properties=None, name='', base=None):
+        super().__init__(properties, name, base)
+        self.strategy_manager = strategy_manager
+        if characters is None:
+            characters = [character for character in strategy_manager.character_templates]
+            characters.append(None)
+        self.character = random.choice(characters)
+
+    def check(self, target):
+        character = self.character
+        if character is None:
+            return True
+        else:
+            return target.name == character.name
+
+    def __str__(self):
+        if self.character is None:
+            return 'Anyone'
+        else:
+            return self.character.name

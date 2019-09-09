@@ -1,13 +1,20 @@
 import random
 import re
 from collections.abc import MutableMapping, MutableSequence, Hashable
-from json_def import *
+from src.json_def import *
 
 
 # Basics
 
 def get_d20():
     return {DIE_COUNT: 1, DIE_SIDES: 20}
+
+
+def pop(expression, key):
+    if key in expression:
+        return expression.pop(key)
+    else:
+        return None
 
 
 def check_and_replace(value, check, replacement):
@@ -18,12 +25,16 @@ def check_and_replace(value, check, replacement):
 
 
 def map_dict(expression, mapping):
-    for key in expression:
-        value = expression[key]
-        if is_map(value):
-            map_dict(value, mapping)
-        else:
-            expression[key] = mapping(value)
+    if is_map(expression):
+        for key in expression:
+            expression[key] = map_dict(expression[key], mapping)
+    elif is_list(expression):
+        for index in range(len(expression)):
+            expression[index] = map_dict(expression[index], mapping)
+    else:
+        expression = mapping(expression)
+
+    return expression
 
 
 def trim(items, threshold, sort_value=lambda x: x):
@@ -102,11 +113,11 @@ def display_invalid(display):
 
 
 def re_search(reg, string):
-    return not (re.re_search(reg.lower(), string.lower()) is None)
+    return not (re.search(reg.lower(), string.lower()) is None)
 
 
 def re_match(reg, string):
-    return not (re.re_match(reg.lower(), string.lower()) is None)
+    return not (re.match(reg.lower(), string.lower()) is None)
 
 
 class Die:
@@ -218,7 +229,7 @@ class BasicContext(MutableMapping, Hashable):
         arguments = expression[ARGUMENTS]
         value = self.eval(arguments[0])
         for argument in arguments[1:]:
-            if self.eval(argument) >= value:
+            if not (value > self.eval(argument)):
                 return False
         return True
 
@@ -226,7 +237,7 @@ class BasicContext(MutableMapping, Hashable):
         arguments = expression[ARGUMENTS]
         value = self.eval(arguments[0])
         for argument in arguments[1:]:
-            if self.eval(argument) <= value:
+            if not (value < self.eval(argument)):
                 return False
         return True
 
@@ -234,7 +245,7 @@ class BasicContext(MutableMapping, Hashable):
         arguments = expression[ARGUMENTS]
         value = self.eval(arguments[0])
         for argument in arguments[1:]:
-            if self.eval(argument) > value:
+            if not (value >= self.eval(argument)):
                 return False
         return True
 
@@ -242,7 +253,7 @@ class BasicContext(MutableMapping, Hashable):
         arguments = expression[ARGUMENTS]
         value = self.eval(arguments[0])
         for argument in arguments[1:]:
-            if self.eval(argument) < value:
+            if not (value <= self.eval(argument)):
                 return False
         return True
 
@@ -345,7 +356,8 @@ class BasicContext(MutableMapping, Hashable):
             if func is not None:
                 return func(expression[key])
             else:
-                return self.get(key).eval(expression[key])
+                value = self.get(key)
+                return value.eval(expression[key]) if value is not None else None
         else:
             return expression
 
@@ -394,6 +406,9 @@ class BasicContext(MutableMapping, Hashable):
             self.temp_atr.pop(attribute)
         else:
             self.temp_atr = {}
+
+    def __str__(self):
+        return str(type(self)) + ': ' + self.name + ' [' + str(id(self)) + ']'
 
 
 class Evaluable(BasicContext):
