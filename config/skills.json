@@ -392,7 +392,8 @@
     },
     "heavy_crossbow_attack": {
       "prototypes": [
-        "action_attack"
+        "action_attack",
+        "ranged_weapon_attack"
       ],
       "properties": {
         "$damage_base": {
@@ -407,7 +408,8 @@
     },
     "super_heavy_crossbow_attack": {
       "prototypes": [
-        "action_attack"
+        "action_attack",
+        "ranged_weapon_attack"
       ],
       "properties": {
         "$damage_base": {
@@ -418,7 +420,7 @@
     "goblin_scimitar_attack": {
       "prototype": true,
       "prototypes": [
-        "attack"
+        "melee_weapon_attack"
       ],
       "properties": {
         "$attack_bonus": 4,

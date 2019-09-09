@@ -315,11 +315,14 @@ class MatchAction(BasicContext):
         self.actor = actor
         self.target = target
         self.targeting = targeting
-        self.trigger = skill[TRIGGER]
+        self.skill = skill
         super().__init__(properties=properties, name=name, base=base)
 
     def act(self):
-        self.targeting.act(self.target, self.trigger, actor=self.actor)
+        self.targeting.act(self.target, self.skill[TRIGGER], actor=self.actor)
+
+    def __str__(self):
+        return type(self).__name__ + ': ' + self.actor.name + ' does ' + self.skill.name + ' at ' + self.target.name
 
 
 class Targeting(BasicContext):
@@ -367,7 +370,9 @@ class SingleTargeting(Targeting):
 def get_targeting(expression=None, base=None):
     if expression is None:
         return SelfTargeting(properties={}, base=base)
-    elif expression.get(PROFILE) == ATTACK:
+    elif expression.get(PROFILE) == SINGLE_TARGET:
+        return SingleTargeting(properties=expression, base=base)
+    elif expression.get(PROFILE) == RANGED_TARGET:
         return SingleTargeting(properties=expression, base=base)
     else:
         return SelfTargeting(properties=expression, base=base)

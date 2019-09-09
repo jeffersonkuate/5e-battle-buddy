@@ -50,7 +50,7 @@ def deep_fill(dictionary, update):
             value = dictionary.get(key)
             if value is None:
                 dictionary[key] = deep_copy(update.get(key))
-            elif is_context(value):
+            elif is_map(value):
                 deep_fill(dictionary[key], update.get(key))
 
 
@@ -165,6 +165,7 @@ class BasicContext(MutableMapping, Hashable):
         self.name = name
         self.properties = {NAME: name}
         self.initiative = None
+        self.match = None
         self.die = Die()
         self.temp_atr = {}
         self.effect_map = {}
@@ -344,10 +345,11 @@ class BasicContext(MutableMapping, Hashable):
         return self.func_and({ARGUMENTS: conditions})
 
     def get_match(self):
-        return self.get(MATCH)
+        return self.match if self.match is not None else self.base.get_match()
 
     def set_match(self, match):
         self.set(MATCH, match)
+        self.match = match
 
     def eval(self, expression):
         if is_evaluable(expression):
@@ -408,7 +410,7 @@ class BasicContext(MutableMapping, Hashable):
             self.temp_atr = {}
 
     def __str__(self):
-        return str(type(self)) + ': ' + self.name + ' [' + str(id(self)) + ']'
+        return type(self).__name__ + ': ' + self.name + ' [' + str(id(self)) + ']'
 
 
 class Evaluable(BasicContext):

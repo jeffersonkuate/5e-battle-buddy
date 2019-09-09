@@ -43,7 +43,7 @@ def get_concretes(expression):
         else:
             if value.get(NAME) is None:
                 value[NAME] = key
-            if not value.get(PROTOTYPE):
+            if value.get(PROTOTYPE) is None:
                 value[PROTOTYPE] = False
 
             prototypes = []
@@ -62,7 +62,7 @@ def get_concretes(expression):
             if properties is not None:
                 for p_key in properties:
                     p_value = properties[p_key]
-                    map_dict(value, lambda x: check_and_replace(x, p_key, p_value))
+                    value = map_dict(value, lambda x: check_and_replace(x, p_key, p_value))
 
             concretes[v_key] = value
 
