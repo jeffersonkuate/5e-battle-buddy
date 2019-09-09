@@ -50,7 +50,7 @@ def deep_fill(dictionary, update):
             value = dictionary.get(key)
             if value is None:
                 dictionary[key] = deep_copy(update.get(key))
-            else:
+            elif is_context(value):
                 deep_fill(dictionary[key], update.get(key))
 
 
