@@ -1,12 +1,12 @@
-from src.match import *
 from src.json_def import *
+from src.match import *
 
 
 # Strategy
 
-class StrategyManager:
+class StrategyManager(BasicContext):
     def __init__(self, match_data, expression):
-        self.environment = BasicContext.environment
+        super().__init__()
         self.character_templates = []
         self.match_data = match_data
         self.match = None
@@ -83,10 +83,14 @@ class StrategyManager:
 
                     self.match = match_context
                     match_context.simulate()
-                    fitness += match_context.get_fitness(strategy_name)
+                    cur_fitness = match_context.get_fitness(strategy_name)
+                    self.log("Strategy " + strategy.name + " scored a fitness of " + str(cur_fitness))
+                    fitness += cur_fitness
                     self.match = None
 
-                strategy.set_fitness(fitness / self.simulations_per_generation)
+                average_fitness = fitness / self.simulations_per_generation
+                self.log("Strategy " + strategy.name + " averaged a fitness of " + str(average_fitness))
+                strategy.set_fitness(average_fitness)
 
                 cloneable_strategies.append(strategy)
                 mutateable_strategies.append(strategy)
@@ -118,8 +122,14 @@ class StrategyManager:
         return random.randint(0, 10)
 
 
-class Strategy:
+class Strategy(BasicContext):
+    id = 8888
+
     def __init__(self, strategy_manager, name='', nodes=None):
+        if name == '':
+            name = str(self.id)
+            self.id += 1
+        super().__init__(name=name)
         self.strategy_manager = strategy_manager
         self.name = name
         self.fitness = 0
@@ -160,8 +170,9 @@ class Strategy:
             node.fitness = fitness
 
 
-class Node:
+class Node(BasicContext):
     def __init__(self, strategy_manager, strategy, weight=0):
+        super().__init__()
         self.strategy_manager = strategy_manager
         self.strategy = strategy
         self.weight = weight
@@ -179,7 +190,7 @@ class Node:
             return 0
 
     def check_action(self, action):
-        return self.condition.check() and self.action.check(action)
+        return self.condition.check(action) and self.action.check(action)
 
     def __str__(self):
         string = ''
@@ -195,8 +206,9 @@ class MetaCondition(BasicContext):
         self.target = random.choice(strategy_manager.character_templates)
         self.status = get_meta_status(strategy_manager)
 
-    def check(self):
-        return self.status.check(self.target)
+    def check(self, action):
+        return self.status.check(select(action.get_match().match_characters,
+                                        lambda character: character.name == self.target.name))
 
     def __str__(self):
         string = ''
@@ -205,7 +217,8 @@ class MetaCondition(BasicContext):
 
 
 def get_meta_status(strategy_manager):
-    if random.randint(0, 1):
+    # TODO: you know what
+    if random.randint(0, 1) >= 0:
         return HealthMetaStatus(strategy_manager, random.randint(0, 10))
     else:
         return DamageMetaStatus(strategy_manager, random.randint(0, 10))
@@ -248,7 +261,7 @@ class MetaAction(BasicContext):
         super().__init__(properties, name, base)
         self.strategy_manager = strategy_manager
         actors = [character for character in strategy_manager.character_templates
-                  if strategy_manager.get_strategy_name(character) is not strategy.name]
+                  if strategy_manager.get_strategy_name(character) is strategy.name]
         self.actor = MetaCharacter(strategy_manager, characters=actors)
         act_names = [] if self.actor.character is None else [skill for skill in self.actor.character.skills]
         name = ''

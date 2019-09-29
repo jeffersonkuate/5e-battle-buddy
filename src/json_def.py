@@ -100,6 +100,7 @@ DAMAGE_DONE = 'damage_done'
 DAMAGE_TAKEN = 'damage_taken'
 DEATH = 'death'
 REMOVAL_FROM_PLAY = 'remove_from_play'
+TICKER = 'ticker'
 INITIALIZE = 'initialize'
 
 # Affinities

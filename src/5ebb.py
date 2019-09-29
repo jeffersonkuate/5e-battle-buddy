@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from src.display import Display
 from src.strategy import *
 
@@ -88,6 +89,7 @@ def main():
     # display.print(json.dumps(config))
     manager = unload_config(config)
     optimization_count = 0
+    BasicContext.logger = display
 
     while True:
         # user_input = display.input("There have been " + str(optimization_count)

@@ -1,6 +1,7 @@
 import random
 import re
 from collections.abc import MutableMapping, MutableSequence, Hashable
+
 from src.json_def import *
 
 
@@ -22,6 +23,13 @@ def check_and_replace(value, check, replacement):
         return replacement
     else:
         return value
+
+
+def select(values, function):
+    for value in values:
+        if function(value):
+            return value
+    return None
 
 
 def map_dict(expression, mapping):
@@ -135,6 +143,7 @@ class Die:
 
 class BasicContext(MutableMapping, Hashable):
     environment = None
+    logger = None
 
     def __eq__(self, obj):
         if is_map(obj):
@@ -143,7 +152,7 @@ class BasicContext(MutableMapping, Hashable):
             return False
 
     def __hash__(self) -> int:
-        return self.name.__hash__()
+        return str(self).__hash__()
 
     def __setitem__(self, key, value):
         self.set(key, value)
@@ -318,7 +327,9 @@ class BasicContext(MutableMapping, Hashable):
         return self.eval(arguments[0]).get(self.eval(arguments[1]))
 
     def roll(self, expression):
-        return self.die.roll(expression[self.eval(DIE_COUNT)], expression[self.eval(DIE_SIDES)])
+        roll = self.die.roll(expression[self.eval(DIE_COUNT)], expression[self.eval(DIE_SIDES)])
+        self.log(str(expression) + "\nCaused a roll of " + str(roll))
+        return roll
 
     def get_initiative(self, expression=None):
         if expression is None:
@@ -340,9 +351,7 @@ class BasicContext(MutableMapping, Hashable):
         self.clear_temp(ACTOR)
 
     def check_conditions(self, conditions=None):
-        if conditions is None:
-            conditions = self.get(CONDITIONS)
-        return self.func_and({ARGUMENTS: conditions})
+        return self.func_and({ARGUMENTS: conditions}) if conditions is not None else False
 
     def get_match(self):
         return self.match if self.match is not None else self.base.get_match()
@@ -408,6 +417,10 @@ class BasicContext(MutableMapping, Hashable):
             self.temp_atr.pop(attribute)
         else:
             self.temp_atr = {}
+
+    def log(self, string):
+        if self.logger is not None:
+            self.logger.log(str(self) + ':\n' + string)
 
     def __str__(self):
         return type(self).__name__ + ': ' + self.name + ' [' + str(id(self)) + ']'

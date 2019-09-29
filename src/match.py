@@ -1,4 +1,5 @@
 import math
+
 from src.basics import *
 from src.json_def import *
 
@@ -40,7 +41,9 @@ class MatchContext(BasicContext):
                     actions = character.get_actions()
 
             if len(actions) > 0:
-                self.strategy_manager.get_strategy(actions[0].actor).choose_action(actions).act()
+                action = self.strategy_manager.get_strategy(actions[0].actor).choose_action(actions)
+                self.log(str(action))
+                action.activate()
 
     def is_conflict(self):
         alignments = []
@@ -86,6 +89,7 @@ class InitiativeSet(BasicContext):
             character = self.current_characters[0]
             if not character.is_turn:
                 self.current_characters.pop()
+                character = None
         else:
             self.load_current_characters()
             self.trigger_start()
@@ -109,7 +113,7 @@ class InitiativeSet(BasicContext):
                 break
             initiative = self.initiatives[i]
         self.current_initiative = initiative
-        self.current_characters = self.turn_order[initiative]
+        self.current_characters = list(self.turn_order[initiative])
 
     def add_character(self, character):
         initiative = character.get_initiative()
@@ -153,16 +157,12 @@ class MatchCharacter(BasicContext):
         self.effect_map[SET] = self.set_effect
         self.effect_map[END_TURN] = self.end_turn
         self.effect_map[REMOVAL_FROM_PLAY] = self.remove_from_play
-        self.hook_map[INITIALIZE] = []
-        self.hook_map[ROLL] = []
-        self.hook_map[START_OF_TURN] = []
-        self.hook_map[END_OF_TURN] = []
-        self.hook_map[MOVEMENT] = []
-        self.hook_map[THREATENED_ZONE_ENTRANCE] = []
-        self.hook_map[THREATENED_ZONE_EXIT] = []
-        self.hook_map[DAMAGE_DONE] = []
-        self.hook_map[DAMAGE_TAKEN] = []
-        self.hook_map[REMOVAL_FROM_PLAY] = []
+
+        hook_names = [INITIALIZE, ROLL, START_OF_TURN, END_OF_TURN, MOVEMENT, THREATENED_ZONE_ENTRANCE,
+                      THREATENED_ZONE_EXIT, DAMAGE_DONE, DAMAGE_TAKEN, REMOVAL_FROM_PLAY, TICKER]
+        for hook_name in hook_names:
+            self.hook_map[hook_name] = []
+
         self.function_map[INITIATIVE] = self.get_initiative
         self.function_map[QUANTITY] = self.get_quantity
         skills = [self.environment.skills[skill_name] for skill_name in self.skills]
@@ -184,15 +184,20 @@ class MatchCharacter(BasicContext):
                 target = None
                 if len(targets) > 0:
                     target = targets[0]
-                targeting.act(target, Trigger(ability.trigger))
+                targeting.act(target, Trigger(ability.trigger), self)
 
     def get_actions(self):
         actions = []
+
         for skill_name in self.match_skills:
             skill = self.match_skills[skill_name]
             if self.check_conditions(skill.conditions):
                 targeting = get_targeting(expression=skill[TARGETING], base=self)
                 actions += targeting.get_actions(skill)
+
+        if len(actions) == 0:
+            actions.append(get_abstain_action(self))
+
         return actions
 
     def get_hp(self):
@@ -279,7 +284,7 @@ class MatchCharacter(BasicContext):
 
     def __str__(self):
         try:
-            return ('\n' + self.name + ' (' + str(self.position) + '): '
+            return (self.name + ' (' + str(self.position) + '): '
                     + str(self.resources.get(HIT_POINT).get_quantity()) + '/'
                     + str(self.resources.get(HIT_POINT).get_max_quantity()))
         except Exception:
@@ -310,19 +315,30 @@ class MatchAbility(BasicContext):
         super().__init__(properties, name, base)
 
 
+def get_abstain_action(character):
+    skill = MatchSkill(name=ABSTAIN)
+    skill.trigger = {EFFECTS: [{PROFILE: END_TURN}]}
+    targeting = get_targeting(expression={PROFILE: SELF_TARGET}, base=character)
+
+    return MatchAction(character, skill, character, targeting, base=character)
+
+
 class MatchAction(BasicContext):
     def __init__(self, actor=None, skill=None, target=None, targeting=None, properties=None, name='', base=None):
         self.actor = actor
         self.target = target
         self.targeting = targeting
-        self.skill = skill
+        self.skill_name = skill.name
+        self.trigger = skill.get(TRIGGER)
+        if name == '':
+            name = skill.name
         super().__init__(properties=properties, name=name, base=base)
 
-    def act(self):
-        self.targeting.act(self.target, self.skill[TRIGGER], actor=self.actor)
+    def activate(self):
+        self.targeting.act(self.target, Trigger(self.trigger), actor=self.actor)
 
     def __str__(self):
-        return type(self).__name__ + ': ' + self.actor.name + ' does ' + self.skill.name + ' at ' + self.target.name
+        return type(self).__name__ + ': ' + self.actor.name + ' does ' + self.skill_name + ' at ' + self.target.name
 
 
 class Targeting(BasicContext):
@@ -394,6 +410,11 @@ class Trigger(BasicContext):
             self.success_effects = []
         if self.failure_effects is None:
             self.failure_effects = []
+
+    def check_conditions(self, conditions=None):
+        if conditions is None:
+            conditions = self.conditions
+        return super().check_conditions(conditions)
 
 
 class MatchResourceSet(BasicContext):
