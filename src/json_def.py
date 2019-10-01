@@ -159,6 +159,7 @@ CURRENT_ROLL = 'current_roll'
 DAMAGE = 'damage'
 RESOURCE_LEVEL = 'level'
 QUANTITY = 'quantity'
+IS_IN_PLAY = 'in_play'
 
 # Temp Contexts
 ATTACK_ATTRIBUTES = 'attack_attributes'

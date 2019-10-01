@@ -28,6 +28,13 @@
                 }
               }
             ]
+          },
+          {
+            "profile": "set",
+            "arguments": [
+              "life",
+              1
+            ]
           }
         ]
       }
@@ -237,18 +244,18 @@
     },
     "mortal": {
       "hook": {
-        "profile": "start_turn"
+        "profile": "ticker"
       },
       "conditions": [
         {
-          "greater": {
+          "less_or_equal": {
             "arguments": [
-              0,
               {
                 "quantity": {
                   "value": "hit_point"
                 }
-              }
+              },
+              0
             ]
           }
         }

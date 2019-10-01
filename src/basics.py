@@ -45,7 +45,7 @@ def map_dict(expression, mapping):
     return expression
 
 
-def trim(items, threshold, sort_value=lambda x: x):
+def trim(items, threshold, sort_value=lambda x: 0):
     items = sorted(items, key=sort_value, reverse=True)
     if len(items) > threshold:
         items = items[:threshold]

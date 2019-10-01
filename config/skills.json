@@ -1,5 +1,11 @@
 {
   "skills": {
+    "basic": [
+      "abstain",
+      "movement",
+      "dodge",
+      "disengage"
+    ],
     "abstain": {
       "profile": "abstain",
       "targeting": {
@@ -68,8 +74,25 @@
           }
         }
       ],
+      "targeting": {
+        "profile": "self"
+      },
       "trigger": {
         "effects": [
+          {
+            "profile": "debit",
+            "arguments": [
+              "action",
+              1
+            ]
+          },
+          {
+            "profile": "debit",
+            "arguments": [
+              "hit_point",
+              25
+            ]
+          },
           {
             "profile": "credit",
             "arguments": [
@@ -83,6 +106,7 @@
     "disengage": {
       "profile": "disengage",
       "conditions": [
+        false,
         {
           "greater_or_equal": {
             "arguments": [
@@ -102,6 +126,13 @@
             "profile": "credit",
             "arguments": [
               "disengage_token",
+              1
+            ]
+          },
+          {
+            "profile": "debit",
+            "arguments": [
+              "action",
               1
             ]
           }
@@ -179,7 +210,9 @@
             "value": "armor_class"
           }
         },
-        "$damage_type": ["physical"]
+        "$damage_type": [
+          "physical"
+        ]
       }
     },
     "action_attack": {
@@ -282,7 +315,7 @@
               {
                 "actor": {
                   "property": {
-                    "value": "proficiency"
+                    "value": "proficiency_bonus"
                   }
                 }
               }
@@ -334,7 +367,7 @@
               },
               {
                 "property": {
-                  "value": "proficiency"
+                  "value": "proficiency_bonus"
                 }
               }
             ]

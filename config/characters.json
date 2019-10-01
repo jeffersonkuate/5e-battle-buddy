@@ -24,14 +24,7 @@
         "gnome_cunning"
       ],
       "skills": [
-        "abstain",
-        "movement",
-        "dodge",
-        "rapier_action_attack",
-        "rapier_opportunity_attack",
-        "heavy_crossbow_attack",
-        "super_heavy_crossbow_attack",
-        "disengage"
+        "dodge"
       ],
       "resources": [
         "movement",
@@ -59,12 +52,7 @@
         "mischievous"
       ],
       "skills": [
-        "abstain",
-        "movement",
-        "dodge",
-        "goblin_scimitar_action_attack",
-        "goblin_scimitar_opportunity_attack",
-        "disengage"
+        "dodge"
       ],
       "resources": [
         "movement",

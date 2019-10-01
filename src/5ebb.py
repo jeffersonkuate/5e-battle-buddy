@@ -76,9 +76,9 @@ def report_strategies(manager, display):
 
 
 def report_strategy(strategy, display):
-    report = 'Strategy: ' + strategy.name
+    report = 'Strategy: ' + strategy.name + ' (Fitness: ' + str(strategy.fitness) + ')'
     for node in strategy.nodes:
-        report += '======='
+        report += '\n=======\n'
         report += str(node)
     display.input(string=report, prompt='Press enter to continue:')
 
@@ -89,7 +89,7 @@ def main():
     # display.print(json.dumps(config))
     manager = unload_config(config)
     optimization_count = 0
-    BasicContext.logger = display
+    # BasicContext.logger = display
 
     while True:
         # user_input = display.input("There have been " + str(optimization_count)
@@ -104,9 +104,10 @@ def main():
             report_strategies(manager, display)
         elif re_match(REGEX_BLANK, user_input):
             for strategy_name in manager.strategies:
-                strategy = manager.strategies[strategy_name]
-                manager.optimize(strategy.name)
+                manager.optimize(strategy_name)
                 optimization_count += 1
+
+                strategy = manager.strategies[strategy_name]
                 report_strategy(strategy, display)
         else:
             strategy = manager.strategies[user_input]

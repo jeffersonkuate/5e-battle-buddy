@@ -1,4 +1,3 @@
-from src.json_def import *
 from src.match import *
 
 
@@ -21,44 +20,36 @@ class StrategyManager(BasicContext):
         self.fitness_improvement_threshold = expression[FITNESS_IMPROVEMENT_THRESHOLD]
         self.strategy_grouping = expression[STRATEGY_GROUPING]
 
-        self.strategies = {}
-
         for definition_name in match_data[GAME_CHARACTERS]:
             characters = create_contexts(self.environment.characters[definition_name], MatchCharacter)
             for character in characters:
                 self.character_templates.append(character)
 
-        for character_template in self.character_templates:
-            strategy_name = character_template.eval(self.strategy_grouping)
-            if strategy_name not in self.strategies:
-                self.strategies[strategy_name] = Strategy(self, name=strategy_name)
+        self.strategies = StrategyMap(self)
+
 
     def get_match(self):
         return self.match
-
-    def get_strategy(self, character):
-        strategy_name = self.get_strategy_name(character)
-        if self.strategies.get(strategy_name) is None:
-            self.strategies[strategy_name] = Strategy(self, name=strategy_name)
-        return self.strategies[strategy_name]
 
     def get_strategy_name(self, character):
         return character.eval(self.strategy_grouping)
 
     def optimize(self, strategy_name):
-        cloneable_strategies = []
-        mutateable_strategies = []
-        mergeable_strategies = []
+        old_strategy = self.strategies[strategy_name]
+        if old_strategy is None:
+            old_strategy = Strategy(self, name=strategy_name, nodes=[])
+        cloneable_strategies = [old_strategy]
+        mutateable_strategies = [old_strategy]
+        mergeable_strategies = [old_strategy]
+        strategies = [old_strategy]
 
         last_fitness = -math.inf
-        best_strategy = Strategy(self, strategy_name)
-        strategies = []
-        while (best_strategy is None
-               or (((last_fitness * self.fitness_improvement_threshold) + last_fitness) < best_strategy.fitness)):
+        best_strategy = Strategy(self, name=strategy_name, nodes=[])
+        while (last_fitness * self.fitness_improvement_threshold) < best_strategy.fitness:
             last_fitness = best_strategy.fitness
 
             for i in range(self.novel_strategy_count):
-                strategies.append(Strategy(self, strategy_name))
+                strategies.append(Strategy(self, name=strategy_name))
             while len(cloneable_strategies) > 0:
                 strategies.append(cloneable_strategies.pop())
             while len(mutateable_strategies) > 0:
@@ -76,10 +67,11 @@ class StrategyManager(BasicContext):
             #     i += 1
 
             for strategy in strategies:
+                temp_strategies = StrategyMap(self)
+                temp_strategies[strategy_name] = strategy
                 fitness = 0
                 for i in range(self.simulations_per_generation):
-                    self.strategies[strategy_name] = strategy
-                    match_context = MatchContext(self.match_data, self)
+                    match_context = MatchContext(self.match_data, self.maximum_turns, temp_strategies)
 
                     self.match = match_context
                     match_context.simulate()
@@ -99,9 +91,9 @@ class StrategyManager(BasicContext):
                 if strategy.fitness > best_strategy.fitness:
                     best_strategy = strategy
 
-            self.trim_cloneable(cloneable_strategies)
-            self.trim_mutateable(mutateable_strategies)
-            self.trim_mergeable(mergeable_strategies)
+            cloneable_strategies = self.trim_cloneable(cloneable_strategies)
+            mutateable_strategies = self.trim_mutateable(mutateable_strategies)
+            mergeable_strategies = self.trim_mergeable(mergeable_strategies)
             random.shuffle(mergeable_strategies)
 
         self.strategies[strategy_name] = best_strategy
@@ -115,11 +107,29 @@ class StrategyManager(BasicContext):
     def trim_mergeable(self, strategies):
         return trim(strategies, self.merged_strategy_count, lambda strategy: strategy.fitness)
 
-    def is_ongoing(self, match_context):
-        return (match_context.is_conflict()) and (match_context.get_turn() <= self.maximum_turns)
-
     def get_random_weight(self):
         return random.randint(0, 10)
+
+
+class StrategyMap(BasicContext):
+    def __init__(self, strategy_manager):
+        self.strategy_manager = strategy_manager
+        self.strategies = {}
+
+        for character_template in strategy_manager.character_templates:
+            strategy_name = character_template.eval(strategy_manager.strategy_grouping)
+            if strategy_name not in self.strategies:
+                self.strategies[strategy_name] = Strategy(self, name=strategy_name, nodes=[])
+        super().__init__(properties=self.strategies)
+
+    def get_strategy(self, character):
+        strategy_name = self.strategy_manager.get_strategy_name(character)
+        if self.strategies.get(strategy_name) is None:
+            self.strategies[strategy_name] = Strategy(self, name=strategy_name)
+        return self.strategies[strategy_name]
+
+    def get(self, key):
+        return self.strategies.get(key)
 
 
 class Strategy(BasicContext):
@@ -140,8 +150,7 @@ class Strategy(BasicContext):
     def merge(self, strategy):
         strategy = Strategy(self.strategy_manager, self.name, self.nodes + strategy.nodes)
         strategy.nodes = trim(strategy.nodes,
-                              self.strategy_manager.max_strategy_complexity,
-                              sort_value=lambda node: node.fitness)
+                              self.strategy_manager.max_strategy_complexity)
         return strategy
 
     def mutate(self):
@@ -166,17 +175,15 @@ class Strategy(BasicContext):
 
     def set_fitness(self, fitness):
         self.fitness = fitness
-        for node in self.nodes:
-            node.fitness = fitness
 
 
+# keep immutable
 class Node(BasicContext):
     def __init__(self, strategy_manager, strategy, weight=0):
         super().__init__()
         self.strategy_manager = strategy_manager
         self.strategy = strategy
         self.weight = weight
-        self.fitness = 0
         self.condition = MetaCondition(strategy_manager)
         self.action = MetaAction(strategy_manager, strategy)
 
@@ -195,7 +202,7 @@ class Node(BasicContext):
     def __str__(self):
         string = ''
         string += 'If ' + str(self.condition) + ', then ' + str(self.action)
-        string += '\n-------\nWeight: ' + str(self.weight) + '\nFitness: ' + str(self.fitness)
+        string += '\n-------\nWeight: ' + str(self.weight)
         return string
 
 
@@ -218,7 +225,7 @@ class MetaCondition(BasicContext):
 
 def get_meta_status(strategy_manager):
     # TODO: you know what
-    if random.randint(0, 1) >= 0:
+    if random.randint(0, 1) == 0:
         return HealthMetaStatus(strategy_manager, random.randint(0, 10))
     else:
         return DamageMetaStatus(strategy_manager, random.randint(0, 10))
@@ -263,7 +270,7 @@ class MetaAction(BasicContext):
         actors = [character for character in strategy_manager.character_templates
                   if strategy_manager.get_strategy_name(character) is strategy.name]
         self.actor = MetaCharacter(strategy_manager, characters=actors)
-        act_names = [] if self.actor.character is None else [skill for skill in self.actor.character.skills]
+        act_names = [] if self.actor.character is None else list(self.actor.character.skills)
         name = ''
         if len(act_names) > 0:
             name = random.choice(act_names)

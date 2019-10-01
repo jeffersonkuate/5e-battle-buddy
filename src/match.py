@@ -7,13 +7,14 @@ from src.json_def import *
 # Match
 
 class MatchContext(BasicContext):
-    def __init__(self, properties=None, strategy_manager=None):
+    def __init__(self, maximum_turns, properties=None, strategy_map=None):
+        self.maximum_turns = maximum_turns
         self.board = Board(properties[BOARD_WIDTH], properties[BOARD_HEIGHT])
         self.alignments = []
         self.match_characters = []
         self.initiative_set = InitiativeSet()
         self.action_set_stack = []
-        self.strategy_manager = strategy_manager
+        self.strategy_map = strategy_map
         super().__init__(properties, base=self.environment)
         for definition_name in properties[GAME_CHARACTERS]:
             characters = create_contexts(self.environment.characters[definition_name], MatchCharacter, base=self)
@@ -31,19 +32,22 @@ class MatchContext(BasicContext):
         return self.initiative_set.turn
 
     def simulate(self):
-        while self.strategy_manager.is_ongoing(self):
-            actions = []
+        while self.is_ongoing():
             if len(self.action_set_stack) > 0:
                 actions = self.action_set_stack.pop()
+                action = self.strategy_map.get_strategy(actions[0].actor).choose_action(actions)
+                self.log(str(action))
+
+                action.activate()
+                for character in [character for character in self.match_characters if character.is_in_play()]:
+                    character.trigger_hook(TICKER)
             else:
                 character = self.initiative_set.get_next_character()
                 if character is not None:
-                    actions = character.get_actions()
+                    self.action_set_stack.append(character.get_actions())
 
-            if len(actions) > 0:
-                action = self.strategy_manager.get_strategy(actions[0].actor).choose_action(actions)
-                self.log(str(action))
-                action.activate()
+    def is_ongoing(self):
+        return (self.is_conflict()) and (self.get_turn() <= self.maximum_turns)
 
     def is_conflict(self):
         alignments = []
@@ -58,7 +62,7 @@ class MatchContext(BasicContext):
     def get_fitness(self, strategy_name):
         value = 0
         for character in self.match_characters:
-            if self.strategy_manager.get_strategy(character) == strategy_name:
+            if self.strategy_map.get_strategy(character).name == strategy_name:
                 value += character.resources.get_total_value()
         return value
 
@@ -82,6 +86,7 @@ class InitiativeSet(BasicContext):
         self.current_characters = []
         super().__init__(properties, name, base)
 
+    # Returns None upon a change in initiative
     def get_next_character(self):
         character = None
 
@@ -89,7 +94,8 @@ class InitiativeSet(BasicContext):
             character = self.current_characters[0]
             if not character.is_turn:
                 self.current_characters.pop()
-                character = None
+                self.trigger_start()
+                character = self.get_next_character()
         else:
             self.load_current_characters()
             self.trigger_start()
@@ -113,7 +119,7 @@ class InitiativeSet(BasicContext):
                 break
             initiative = self.initiatives[i]
         self.current_initiative = initiative
-        self.current_characters = list(self.turn_order[initiative])
+        self.current_characters = [character for character in self.turn_order[initiative] if character.is_in_play()]
 
     def add_character(self, character):
         initiative = character.get_initiative()
@@ -165,6 +171,7 @@ class MatchCharacter(BasicContext):
 
         self.function_map[INITIATIVE] = self.get_initiative
         self.function_map[QUANTITY] = self.get_quantity
+        self.function_map[IS_IN_PLAY] = self.is_in_play
         skills = [self.environment.skills[skill_name] for skill_name in self.skills]
         abilities = [self.environment.abilities[ability_name] for ability_name in self.abilities]
         for skill in create_contexts(skills, MatchSkill, base=self):
@@ -209,7 +216,7 @@ class MatchCharacter(BasicContext):
     def end_turn(self, expression=None):
         self.is_turn = False
 
-    def is_in_play(self):
+    def is_in_play(self, expression=None):
         return self.in_play
 
     def remove_from_play(self, expression=None):
@@ -273,10 +280,10 @@ class MatchCharacter(BasicContext):
         return value
 
     def get(self, key):
-        if isinstance(key, str) and re_match(key, REGEX_SAVE):
+        if isinstance(key, str) and (re_match(key, REGEX_SAVE) or re_match(key, REGEX_AM)):
             attribute = key.split(SEPARATOR)[0]
             value = math.floor((self.get(attribute) - 10) / 2)
-            if attribute in self.proficiencies:
+            if (attribute in self.proficiencies) and re_match(key, REGEX_SAVE):
                 value += self.proficiency_bonus
             return value
         else:
