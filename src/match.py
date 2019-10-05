@@ -1,20 +1,22 @@
 import math
 
-from src.basics import *
-from src.json_def import *
+from display.display_message import DisplayMessage
+from models.json_def import *
+from models.prompts import *
+from basics.basics import *
 
 
 # Match
 
 class MatchContext(BasicContext):
-    def __init__(self, maximum_turns, properties=None, strategy_map=None):
+    def __init__(self, maximum_turns, properties=None, strategies=None):
         self.maximum_turns = maximum_turns
         self.board = Board(properties[BOARD_WIDTH], properties[BOARD_HEIGHT])
         self.alignments = []
         self.match_characters = []
         self.initiative_set = InitiativeSet()
         self.action_set_stack = []
-        self.strategy_map = strategy_map
+        self.strategies = strategies
         super().__init__(properties, base=self.environment)
         for definition_name in properties[GAME_CHARACTERS]:
             characters = create_contexts(self.environment.characters[definition_name], MatchCharacter, base=self)
@@ -31,20 +33,47 @@ class MatchContext(BasicContext):
     def get_turn(self):
         return self.initiative_set.turn
 
-    def simulate(self):
+    def simulate(self, display=None):
         while self.is_ongoing():
+            display_message = DisplayMessage(display)
+            display_message.add_text("Characters:")
+            for character in [character for character in self.match_characters if character.is_in_play()]:
+                display_message.add_text(str(character))
+
             if len(self.action_set_stack) > 0:
+                current_character = self.initiative_set.get_current_character()
+                initiative = self.initiative_set.current_initiative
+                turn = self.initiative_set.turn
                 actions = self.action_set_stack.pop()
-                action = self.strategy_map.get_strategy(actions[0].actor).choose_action(actions)
+                strategy = self.strategies.get_strategy(current_character)
+
+                display_message.add_section("Current Character: " + str(current_character))
+                display_message.add_text("Current Initiative: " + str(initiative))
+                display_message.add_text("Current Turn: " + str(turn))
+                display_message.add_section("Strategy: " + strategy.name)
+                # TODO: see note on 5ebb.report_strategies... shame on you
+                for node in strategy.nodes:
+                    display_message.add_text(str(node))
+                display_message.add_sub_section("Possible actions: ")
+                for action in actions:
+                    display_message.add_text(str(action))
+
+                action = strategy.choose_action(self, actions)
                 self.log(str(action))
+                display_message.add_section("Action chosen: " + str(action))
 
                 action.activate()
                 for character in [character for character in self.match_characters if character.is_in_play()]:
                     character.trigger_hook(TICKER)
+
+                if display is not None:
+                    display_message.input()
             else:
                 character = self.initiative_set.get_next_character()
                 if character is not None:
+                    display_message.add_section("Current Turn: " + str(character))
                     self.action_set_stack.append(character.get_actions())
+                    display_message.add_sub_section("Adding the ")
 
     def is_ongoing(self):
         return (self.is_conflict()) and (self.get_turn() <= self.maximum_turns)
@@ -62,7 +91,7 @@ class MatchContext(BasicContext):
     def get_fitness(self, strategy_name):
         value = 0
         for character in self.match_characters:
-            if self.strategy_map.get_strategy(character).name == strategy_name:
+            if self.strategies.get_strategy(character).name == strategy_name:
                 value += character.resources.get_total_value()
         return value
 
@@ -120,6 +149,12 @@ class InitiativeSet(BasicContext):
             initiative = self.initiatives[i]
         self.current_initiative = initiative
         self.current_characters = [character for character in self.turn_order[initiative] if character.is_in_play()]
+
+    def get_current_character(self):
+        character = None
+        if len(self.current_characters) > 0:
+            character = self.current_characters[0]
+        return character
 
     def add_character(self, character):
         initiative = character.get_initiative()
@@ -222,26 +257,26 @@ class MatchCharacter(BasicContext):
     def remove_from_play(self, expression=None):
         self.in_play = False
 
-    def attack(self, expression):
+    def attack(self, expression, display_message=None):
         actor = self.get(ACTOR)
 
-        attack_attributes = BasicContext({TYPE: self.eval(expression[TYPE])})
+        attack_attributes = BasicContext({TYPE: self.eval(expression[TYPE], display_message)})
         actor.set_temp(ATTACK_ATTRIBUTES, attack_attributes)
         self.set_temp(ATTACK_ATTRIBUTES, attack_attributes)
 
-        attack_attributes[HIT_METRIC] = self.eval(expression[HIT_METRIC])
-        attack_attributes[SAVE_METRIC] = self.eval(expression[SAVE_METRIC])
+        attack_attributes[HIT_METRIC] = self.eval(expression[HIT_METRIC], display_message)
+        attack_attributes[SAVE_METRIC] = self.eval(expression[SAVE_METRIC], display_message)
 
         if self.check_conditions(expression[HIT_CONDITIONS]):
-            damage_attributes = BasicContext({TYPE: self.eval(expression[TYPE])})
+            damage_attributes = BasicContext({TYPE: self.eval(expression[TYPE], display_message)})
             self.set_temp(DAMAGE_ATTRIBUTES, damage_attributes)
-            self.damage(expression[self.eval(DAMAGE)])
+            self.damage(expression[self.eval(DAMAGE, display_message)])
             self.clear_temp(DAMAGE_ATTRIBUTES)
 
         actor.clear_temp(ATTACK_ATTRIBUTES)
         self.clear_temp(ATTACK_ATTRIBUTES)
 
-    def damage(self, value):
+    def damage(self, value, display_message=None):
         damage_attributes = self.get(DAMAGE_ATTRIBUTES)
         damage_attributes.set(DAMAGE, value)
         damage = damage_attributes.get(DAMAGE)
@@ -251,29 +286,29 @@ class MatchCharacter(BasicContext):
         actor = self.get(ACTOR)
         actor.trigger_hook(DAMAGE_DONE)
 
-    def roll(self, expression):
+    def roll(self, expression, display_message=None):
         self.set_temp(ROLL_ATTRIBUTES, {CURRENT_ROLL: super().roll(expression)})
         self.trigger_hook(ROLL)
         roll = self.get(ROLL_ATTRIBUTES)[CURRENT_ROLL]
         self.clear_temp(ROLL_ATTRIBUTES)
         return roll
 
-    def credit_effect(self, expression):
+    def credit_effect(self, expression, display_message=None):
         self.get_temp(expression.get(TARGET)).resources.get(expression[ARGUMENTS][0]).credit(
-            self.eval(expression[ARGUMENTS][1]))
+            self.eval(expression[ARGUMENTS][1], display_message))
 
-    def debit_effect(self, expression):
+    def debit_effect(self, expression, display_message=None):
         self.get_temp(expression.get(TARGET)).resources.get(expression[ARGUMENTS][0]).debit(
-            self.eval(expression[ARGUMENTS][1]))
+            self.eval(expression[ARGUMENTS][1], display_message))
 
-    def set_effect(self, expression):
+    def set_effect(self, expression, display_message=None):
         self.get_temp(expression.get(TARGET)).resources.get(expression[ARGUMENTS][0]).set_func(
-            self.eval(expression[ARGUMENTS][1]))
+            self.eval(expression[ARGUMENTS][1], display_message))
 
-    def get_quantity(self, expression):
+    def get_quantity(self, expression, display_message=None):
         return self.resources.get(expression[VALUE]).quantity
 
-    def get_temp(self, key):
+    def get_temp(self, key, display_message=None):
         value = self.temp_atr.get(key)
         if value is None:
             value = self
@@ -482,16 +517,16 @@ class MatchResourceSet(BasicContext):
 
 
 class MatchResource(BasicContext):
-    def __init__(self, properties=None, resource_set=None, name='', base=None):
+    def __init__(self, properties=None, resource_set=None, name='', base=None, display_message=None):
         self.quantity = 0
         self.value = 0
         super().__init__(properties, name, base)
 
         self.resource_set = resource_set
         self.character = resource_set.character
-        self.initial = self.character.eval(properties.get(INITIAL))
-        self.max_quantity = self.character.eval(properties.get(MAX_QUANTITY))
-        self.compulsory = self.character.eval(properties.get(COMPULSORY))
+        self.initial = self.character.eval(properties.get(INITIAL), display_message)
+        self.max_quantity = self.character.eval(properties.get(MAX_QUANTITY), display_message)
+        self.compulsory = self.character.eval(properties.get(COMPULSORY), display_message)
 
         if self.initial is None:
             self.initial = 0

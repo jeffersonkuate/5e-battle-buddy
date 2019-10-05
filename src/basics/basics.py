@@ -1,131 +1,4 @@
-import random
-import re
-from collections.abc import MutableMapping, MutableSequence, Hashable
-
-from src.json_def import *
-
-
-# Basics
-
-def get_d20():
-    return {DIE_COUNT: 1, DIE_SIDES: 20}
-
-
-def pop(expression, key):
-    if key in expression:
-        return expression.pop(key)
-    else:
-        return None
-
-
-def check_and_replace(value, check, replacement):
-    if value == check:
-        return replacement
-    else:
-        return value
-
-
-def select(values, function):
-    for value in values:
-        if function(value):
-            return value
-    return None
-
-
-def map_dict(expression, mapping):
-    if is_map(expression):
-        for key in expression:
-            expression[key] = map_dict(expression[key], mapping)
-    elif is_list(expression):
-        for index in range(len(expression)):
-            expression[index] = map_dict(expression[index], mapping)
-    else:
-        expression = mapping(expression)
-
-    return expression
-
-
-def trim(items, threshold, sort_value=lambda x: 0):
-    items = sorted(items, key=sort_value, reverse=True)
-    if len(items) > threshold:
-        items = items[:threshold]
-    return items
-
-
-def deep_fill(dictionary, update):
-    if is_map(update):
-        for key in update:
-            value = dictionary.get(key)
-            if value is None:
-                dictionary[key] = deep_copy(update.get(key))
-            elif is_map(value):
-                deep_fill(dictionary[key], update.get(key))
-
-
-def deep_copy(dictionary):
-    value = {}
-    if is_map(dictionary):
-        for key in dictionary:
-            value[key] = deep_copy(dictionary.get(key))
-        return value
-    else:
-        return dictionary
-
-
-def collapse_set(collection, context):
-    new_set = []
-    for value in collection:
-        if is_list(context[value]):
-            new_set += collapse_set(context[value], context)
-        else:
-            new_set.append(context[value])
-    return new_set
-
-
-def create_contexts(expression, context_type, base=None):
-    contexts = []
-    if is_list(expression):
-        for value in expression:
-            contexts += create_contexts(value, context_type, base=base)
-    else:
-        contexts.append(context_type(expression, base=base))
-    return contexts
-
-
-def is_map(context):
-    return issubclass(type(context), MutableMapping)
-
-
-def is_evaluable(expression):
-    return issubclass(type(expression), dict) or issubclass(type(expression), Evaluable)
-
-
-def is_list(expression):
-    return issubclass(type(expression), MutableSequence)
-
-
-def is_context(context):
-    return issubclass(type(context), BasicContext)
-
-
-def checked_input(display, string='', prompt='', reg=REGEX_ALL):
-    user_input = display.input(string, prompt)
-    while not re_match(reg, user_input):
-        display_invalid(display)
-        user_input = display.input(string, prompt)
-    return user_input
-
-
-def display_invalid(display):
-    display.input(INVALID, PROMPT_ENTER)
-
-
-def re_search(reg, string):
-    return not (re.search(reg.lower(), string.lower()) is None)
-
-
-def re_match(reg, string):
-    return not (re.match(reg.lower(), string.lower()) is None)
+from basics.basic_methods import *
 
 
 class Die:
@@ -204,134 +77,137 @@ class BasicContext(MutableMapping, Hashable):
             for key in properties:
                 self.set(key, properties[key])
 
-    def context(self, expression):
-        return self.get(self.eval(expression[VALUE]))
+    def context(self, expression, display_message=None):
+        return self.get(self.eval(expression[VALUE], display_message))
 
-    def add(self, expression):
+    def add(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
         count = 0
         for argument in arguments:
-            count += self.eval(argument)
+            count += self.eval(argument, display_message)
         return count
 
-    def subtract(self, expression):
+    def subtract(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        count = self.eval(arguments[0])
+        count = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            count -= self.eval(argument)
+            count -= self.eval(argument, display_message)
         return count
 
-    def multiply(self, expression):
+    def multiply(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        count = self.eval(arguments[0])
+        count = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            count *= self.eval(argument)
+            count *= self.eval(argument, display_message)
         return count
 
-    def divide(self, expression):
+    def divide(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        count = self.eval(arguments[0])
+        count = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            count /= self.eval(argument)
+            count /= self.eval(argument, display_message)
         return count
 
-    def greater(self, expression):
+    def greater(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0])
+        value = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            if not (value > self.eval(argument)):
+            if not (value > self.eval(argument, display_message)):
                 return False
         return True
 
-    def less(self, expression):
+    def less(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0])
+        value = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            if not (value < self.eval(argument)):
+            if not (value < self.eval(argument, display_message)):
                 return False
         return True
 
-    def greater_or_equal(self, expression):
+    def greater_or_equal(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0])
+        value = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            if not (value >= self.eval(argument)):
+            if not (value >= self.eval(argument, display_message)):
                 return False
         return True
 
-    def less_or_equal(self, expression):
+    def less_or_equal(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0])
+        value = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            if not (value <= self.eval(argument)):
+            if not (value <= self.eval(argument, display_message)):
                 return False
         return True
 
-    def maximum(self, expression):
+    def maximum(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0])
+        value = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            argument_eval = self.eval(argument)
+            argument_eval = self.eval(argument, display_message)
             if argument_eval > value:
                 value = argument
         return value
 
-    def minimum(self, expression):
+    def minimum(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0])
+        value = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            argument_eval = self.eval(argument)
+            argument_eval = self.eval(argument, display_message)
             if argument_eval < value:
                 value = argument
         return value
 
-    def func_map(self, expression):
+    def func_map(self, expression, display_message=None):
         arguments = (expression[ARGUMENTS])
-        collection = self.eval(arguments[0])
+        collection = self.eval(arguments[0], display_message)
         func = arguments[1]
 
         value = []
         for item in collection:
-            value.append(item.eval(func))
+            value.append(item.eval(func, display_message))
 
         return value
 
-    def contains(self, expression):
+    def contains(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0])
+        value = self.eval(arguments[0], display_message)
         for argument in arguments[1:]:
-            if value is None or self.eval(argument) not in value:
+            if value is None or self.eval(argument, display_message) not in value:
                 return False
         return True
 
-    def func_and(self, expression):
+    def func_and(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
         for argument in arguments:
-            argument_eval = self.eval(argument)
+            argument_eval = self.eval(argument, display_message)
             if not argument_eval:
                 return False
         return True
 
-    def func_or(self, expression):
+    def func_or(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
         for argument in arguments:
-            if self.eval(argument):
+            if self.eval(argument, display_message):
                 return True
         return False
 
-    def func_not(self, expression):
-        return not self.eval(expression[ARGUMENTS])
+    def func_not(self, expression, display_message=None):
+        return not self.eval(expression[ARGUMENTS], display_message)
 
-    def func_get(self, expression):
+    def func_get(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        return self.eval(arguments[0]).get(self.eval(arguments[1]))
+        return self.eval(arguments[0], display_message).get(self.eval(arguments[1], display_message))
 
-    def roll(self, expression):
-        roll = self.die.roll(expression[self.eval(DIE_COUNT)], expression[self.eval(DIE_SIDES)])
-        self.log(str(expression) + "\nCaused a roll of " + str(roll))
+    def roll(self, expression, display_message=None):
+        roll = self.die.roll(expression[self.eval(DIE_COUNT, display_message)], expression[self.eval(DIE_SIDES, display_message)])
+        roll_string = str(expression) + "\nCaused a roll of " + str(roll)
+        self.log(roll_string)
+        if display_message is not None:
+            display_message.add_sub_section(roll_string)
         return roll
 
-    def get_initiative(self, expression=None):
+    def get_initiative(self, expression=None, display_message=None):
         if expression is None:
             expression = self.initiative
         if expression is None:
@@ -339,18 +215,18 @@ class BasicContext(MutableMapping, Hashable):
 
         match_initiative = self.match_initiative
         if match_initiative is None:
-            match_initiative = self.eval(expression)
+            match_initiative = self.eval(expression, display_message)
             self.match_initiative = match_initiative
         return match_initiative
 
-    def affect(self, expression, actor=None):
+    def affect(self, expression, actor=None, display_message=None):
         self.set_temp(ACTOR, actor)
         effect = self.effect_map.get(expression[PROFILE])
         if effect is not None:
-            effect(expression)
+            effect(expression, display_message)
         self.clear_temp(ACTOR)
 
-    def check_conditions(self, conditions=None):
+    def check_conditions(self, conditions=None, display_message=None):
         return self.func_and({ARGUMENTS: conditions}) if conditions is not None else False
 
     def get_match(self):
@@ -360,15 +236,15 @@ class BasicContext(MutableMapping, Hashable):
         self.set(MATCH, match)
         self.match = match
 
-    def eval(self, expression):
+    def eval(self, expression, display_message=None):
         if is_evaluable(expression):
             key = list(expression.keys())[0]
             func = self.function_map.get(key)
             if func is not None:
-                return func(expression[key])
+                return func(expression[key], display_message)
             else:
                 value = self.get(key)
-                return value.eval(expression[key]) if value is not None else None
+                return value.eval(expression[key], display_message) if value is not None else None
         else:
             return expression
 

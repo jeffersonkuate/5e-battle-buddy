@@ -1,8 +1,13 @@
 import json
 import os
 
-from src.display import Display
-from src.strategy import *
+# from display.display import Display
+from display.better_display import Display
+from models.json_def import *
+from models.prompts import *
+from basics.basic_methods import *
+from basics.basics import Environment
+from strategy import StrategyManager
 
 
 # Driver
@@ -29,7 +34,7 @@ def load_config():
 
 def load(path):
     if not re_match(REGEX_LONG_PATH, path):
-        path = os.getcwd() + '/config/' + path
+        path = os.getcwd() + '/../config/' + path
     return json.load(open(path))
 
 
@@ -70,6 +75,11 @@ def get_concretes(expression):
     return concretes
 
 
+# TODO: this unholy method and it's perverse usage
+#  is an assault on both man and Christendom.
+#  For the love of all that is righteous please refactor.
+#  StrategyManager should have a string returning method
+#  of similar functionality.
 def report_strategies(manager, display):
     for strategy_name in manager.strategies:
         report_strategy(manager.strategies[strategy_name], display)
@@ -78,9 +88,9 @@ def report_strategies(manager, display):
 def report_strategy(strategy, display):
     report = 'Strategy: ' + strategy.name + ' (Fitness: ' + str(strategy.fitness) + ')'
     for node in strategy.nodes:
-        report += '\n=======\n'
+        report += '\n' + THICK_DIVIDER + '\n'
         report += str(node)
-    display.input(string=report, prompt='Press enter to continue:')
+    display.input(string=report, prompt=PROMPT_ENTER)
 
 
 def main():
@@ -92,14 +102,17 @@ def main():
     # BasicContext.logger = display
 
     while True:
-        # user_input = display.input("There have been " + str(optimization_count)
-        #                            + " optimization(s) made.\n"
-        #                            + "Enter q to quit, i for info, the name of a strategy to optimize it,"
-        #                            + " or nothing to optimize all strategies")
-        user_input = ''
+        user_input = display.input("There have been " + str(optimization_count)
+                                   + " optimization(s) made.\n"
+                                   + "Enter s to step through a demo optimized match, "
+                                   + "q to quit, i for info, the name of a strategy to optimize it,"
+                                   + " or nothing to optimize all strategies")
+        # user_input = ''
 
         if re_match(REGEX_QUIT, user_input):
-            quit(1)
+            quit()
+        elif re_match(REGEX_STEP, user_input):
+            manager.step(display)
         elif re_match(REGEX_INFO, user_input):
             report_strategies(manager, display)
         elif re_match(REGEX_BLANK, user_input):

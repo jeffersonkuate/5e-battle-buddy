@@ -1,4 +1,5 @@
-from src.match import *
+from match import *
+from models.prompts import *
 
 
 # Strategy
@@ -27,12 +28,12 @@ class StrategyManager(BasicContext):
 
         self.strategies = StrategyMap(self)
 
-
-    def get_match(self):
-        return self.match
-
     def get_strategy_name(self, character):
         return character.eval(self.strategy_grouping)
+
+    def step(self, display):
+        MatchContext(self.maximum_turns, properties=self.match_data, strategies=self.strategies).simulate(
+            display=display)
 
     def optimize(self, strategy_name):
         old_strategy = self.strategies[strategy_name]
@@ -63,26 +64,25 @@ class StrategyManager(BasicContext):
             # for strategy in strategies:
             #     print("Strategy " + str(i) + ":")
             #     for node in strategy.nodes:
-            #         print(str(node) + "\n==========\n")
+            #         print(str(node) + "\n" + THICK_SEPARATOR + "\n")
             #     i += 1
 
             for strategy in strategies:
-                temp_strategies = StrategyMap(self)
+                temp_strategies = StrategyMap(self, self.strategies.strategies)
                 temp_strategies[strategy_name] = strategy
                 fitness = 0
                 for i in range(self.simulations_per_generation):
-                    match_context = MatchContext(self.match_data, self.maximum_turns, temp_strategies)
+                    match_context = MatchContext(self.maximum_turns, properties=self.match_data,
+                                                 strategies=temp_strategies)
 
-                    self.match = match_context
                     match_context.simulate()
                     cur_fitness = match_context.get_fitness(strategy_name)
                     self.log("Strategy " + strategy.name + " scored a fitness of " + str(cur_fitness))
                     fitness += cur_fitness
-                    self.match = None
 
                 average_fitness = fitness / self.simulations_per_generation
                 self.log("Strategy " + strategy.name + " averaged a fitness of " + str(average_fitness))
-                strategy.set_fitness(average_fitness)
+                strategy.fitness = average_fitness
 
                 cloneable_strategies.append(strategy)
                 mutateable_strategies.append(strategy)
@@ -112,15 +112,19 @@ class StrategyManager(BasicContext):
 
 
 class StrategyMap(BasicContext):
-    def __init__(self, strategy_manager):
+    def __init__(self, strategy_manager, strategies=None):
         self.strategy_manager = strategy_manager
         self.strategies = {}
+        if strategies is not None:
+            for strategy in strategies:
+                self.strategies[strategy] = strategies[strategy]
 
         for character_template in strategy_manager.character_templates:
             strategy_name = character_template.eval(strategy_manager.strategy_grouping)
             if strategy_name not in self.strategies:
-                self.strategies[strategy_name] = Strategy(self, name=strategy_name, nodes=[])
-        super().__init__(properties=self.strategies)
+                self.strategies[strategy_name] = Strategy(self.strategy_manager, name=strategy_name, nodes=[])
+        super().__init__()
+        self.properties = self.strategies
 
     def get_strategy(self, character):
         strategy_name = self.strategy_manager.get_strategy_name(character)
@@ -156,7 +160,7 @@ class Strategy(BasicContext):
     def mutate(self):
         return Strategy(self.strategy_manager, self.name)
 
-    def choose_action(self, action_list):
+    def choose_action(self, match, action_list):
         weights = {}
         for action in action_list:
             weights[action] = 0
@@ -172,9 +176,6 @@ class Strategy(BasicContext):
                 best_action = action
 
         return best_action
-
-    def set_fitness(self, fitness):
-        self.fitness = fitness
 
 
 # keep immutable
@@ -202,7 +203,7 @@ class Node(BasicContext):
     def __str__(self):
         string = ''
         string += 'If ' + str(self.condition) + ', then ' + str(self.action)
-        string += '\n-------\nWeight: ' + str(self.weight)
+        string += '\n' + THIN_DIVIDER + '\nWeight: ' + str(self.weight)
         return string
 
 
@@ -304,7 +305,7 @@ class MetaAct(BasicContext):
 
 
 class MetaCharacter(BasicContext):
-    def __init__(self, strategy_manager=None, strategy=None, characters=None, properties=None, name='', base=None):
+    def __init__(self, strategy_manager=None, characters=None, properties=None, name='', base=None):
         super().__init__(properties, name, base)
         self.strategy_manager = strategy_manager
         if characters is None:
