@@ -160,6 +160,7 @@ class Strategy(BasicContext):
     def mutate(self):
         return Strategy(self.strategy_manager, self.name)
 
+    # TODO: choose_action should filter nodes by condition *before* calculating weights
     def choose_action(self, match, action_list):
         weights = {}
         for action in action_list:

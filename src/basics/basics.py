@@ -78,109 +78,109 @@ class BasicContext(MutableMapping, Hashable):
                 self.set(key, properties[key])
 
     def context(self, expression, display_message=None):
-        return self.get(self.eval(expression[VALUE], display_message))
+        return self.get(self.eval(expression[VALUE], display_message=display_message))
 
     def add(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
         count = 0
         for argument in arguments:
-            count += self.eval(argument, display_message)
+            count += self.eval(argument, display_message=display_message)
         return count
 
     def subtract(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        count = self.eval(arguments[0], display_message)
+        count = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            count -= self.eval(argument, display_message)
+            count -= self.eval(argument, display_message=display_message)
         return count
 
     def multiply(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        count = self.eval(arguments[0], display_message)
+        count = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            count *= self.eval(argument, display_message)
+            count *= self.eval(argument, display_message=display_message)
         return count
 
     def divide(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        count = self.eval(arguments[0], display_message)
+        count = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            count /= self.eval(argument, display_message)
+            count /= self.eval(argument, display_message=display_message)
         return count
 
     def greater(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0], display_message)
+        value = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            if not (value > self.eval(argument, display_message)):
+            if not (value > self.eval(argument, display_message=display_message)):
                 return False
         return True
 
     def less(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0], display_message)
+        value = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            if not (value < self.eval(argument, display_message)):
+            if not (value < self.eval(argument, display_message=display_message)):
                 return False
         return True
 
     def greater_or_equal(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0], display_message)
+        value = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            if not (value >= self.eval(argument, display_message)):
+            if not (value >= self.eval(argument, display_message=display_message)):
                 return False
         return True
 
     def less_or_equal(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0], display_message)
+        value = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            if not (value <= self.eval(argument, display_message)):
+            if not (value <= self.eval(argument, display_message=display_message)):
                 return False
         return True
 
     def maximum(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0], display_message)
+        value = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            argument_eval = self.eval(argument, display_message)
+            argument_eval = self.eval(argument, display_message=display_message)
             if argument_eval > value:
                 value = argument
         return value
 
     def minimum(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0], display_message)
+        value = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            argument_eval = self.eval(argument, display_message)
+            argument_eval = self.eval(argument, display_message=display_message)
             if argument_eval < value:
                 value = argument
         return value
 
     def func_map(self, expression, display_message=None):
         arguments = (expression[ARGUMENTS])
-        collection = self.eval(arguments[0], display_message)
+        collection = self.eval(arguments[0], display_message=display_message)
         func = arguments[1]
 
         value = []
         for item in collection:
-            value.append(item.eval(func, display_message))
+            value.append(item.eval(func, display_message=display_message))
 
         return value
 
     def contains(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        value = self.eval(arguments[0], display_message)
+        value = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            if value is None or self.eval(argument, display_message) not in value:
+            if value is None or self.eval(argument, display_message=display_message) not in value:
                 return False
         return True
 
     def func_and(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
         for argument in arguments:
-            argument_eval = self.eval(argument, display_message)
+            argument_eval = self.eval(argument, display_message=display_message)
             if not argument_eval:
                 return False
         return True
@@ -188,19 +188,19 @@ class BasicContext(MutableMapping, Hashable):
     def func_or(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
         for argument in arguments:
-            if self.eval(argument, display_message):
+            if self.eval(argument, display_message=display_message):
                 return True
         return False
 
     def func_not(self, expression, display_message=None):
-        return not self.eval(expression[ARGUMENTS], display_message)
+        return not self.eval(expression[ARGUMENTS], display_message=display_message)
 
     def func_get(self, expression, display_message=None):
         arguments = expression[ARGUMENTS]
-        return self.eval(arguments[0], display_message).get(self.eval(arguments[1], display_message))
+        return self.eval(arguments[0], display_message=display_message).get(self.eval(arguments[1], display_message=display_message))
 
     def roll(self, expression, display_message=None):
-        roll = self.die.roll(expression[self.eval(DIE_COUNT, display_message)], expression[self.eval(DIE_SIDES, display_message)])
+        roll = self.die.roll(expression[self.eval(DIE_COUNT, display_message=display_message)], expression[self.eval(DIE_SIDES, display_message=display_message)])
         roll_string = str(expression) + "\nCaused a roll of " + str(roll)
         self.log(roll_string)
         if display_message is not None:
@@ -215,7 +215,7 @@ class BasicContext(MutableMapping, Hashable):
 
         match_initiative = self.match_initiative
         if match_initiative is None:
-            match_initiative = self.eval(expression, display_message)
+            match_initiative = self.eval(expression, display_message=display_message)
             self.match_initiative = match_initiative
         return match_initiative
 
@@ -223,7 +223,7 @@ class BasicContext(MutableMapping, Hashable):
         self.set_temp(ACTOR, actor)
         effect = self.effect_map.get(expression[PROFILE])
         if effect is not None:
-            effect(expression, display_message)
+            effect(expression, display_message=display_message)
         self.clear_temp(ACTOR)
 
     def check_conditions(self, conditions=None, display_message=None):
@@ -241,10 +241,10 @@ class BasicContext(MutableMapping, Hashable):
             key = list(expression.keys())[0]
             func = self.function_map.get(key)
             if func is not None:
-                return func(expression[key], display_message)
+                return func(expression[key], display_message=display_message)
             else:
                 value = self.get(key)
-                return value.eval(expression[key], display_message) if value is not None else None
+                return value.eval(expression[key], display_message=display_message) if value is not None else None
         else:
             return expression
 

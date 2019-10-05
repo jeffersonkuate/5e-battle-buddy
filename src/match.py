@@ -62,7 +62,7 @@ class MatchContext(BasicContext):
                 self.log(str(action))
                 display_message.add_section("Action chosen: " + str(action))
 
-                action.activate()
+                action.activate(display_message)
                 for character in [character for character in self.match_characters if character.is_in_play()]:
                     character.trigger_hook(TICKER)
 
@@ -260,17 +260,17 @@ class MatchCharacter(BasicContext):
     def attack(self, expression, display_message=None):
         actor = self.get(ACTOR)
 
-        attack_attributes = BasicContext({TYPE: self.eval(expression[TYPE], display_message)})
+        attack_attributes = BasicContext({TYPE: self.eval(expression[TYPE], display_message=display_message)})
         actor.set_temp(ATTACK_ATTRIBUTES, attack_attributes)
         self.set_temp(ATTACK_ATTRIBUTES, attack_attributes)
 
-        attack_attributes[HIT_METRIC] = self.eval(expression[HIT_METRIC], display_message)
-        attack_attributes[SAVE_METRIC] = self.eval(expression[SAVE_METRIC], display_message)
+        attack_attributes[HIT_METRIC] = self.eval(expression[HIT_METRIC], display_message=display_message)
+        attack_attributes[SAVE_METRIC] = self.eval(expression[SAVE_METRIC], display_message=display_message)
 
         if self.check_conditions(expression[HIT_CONDITIONS]):
-            damage_attributes = BasicContext({TYPE: self.eval(expression[TYPE], display_message)})
+            damage_attributes = BasicContext({TYPE: self.eval(expression[TYPE], display_message=display_message)})
             self.set_temp(DAMAGE_ATTRIBUTES, damage_attributes)
-            self.damage(expression[self.eval(DAMAGE, display_message)])
+            self.damage(expression[self.eval(DAMAGE, display_message=display_message)])
             self.clear_temp(DAMAGE_ATTRIBUTES)
 
         actor.clear_temp(ATTACK_ATTRIBUTES)
@@ -295,15 +295,15 @@ class MatchCharacter(BasicContext):
 
     def credit_effect(self, expression, display_message=None):
         self.get_temp(expression.get(TARGET)).resources.get(expression[ARGUMENTS][0]).credit(
-            self.eval(expression[ARGUMENTS][1], display_message))
+            self.eval(expression[ARGUMENTS][1], display_message=display_message))
 
     def debit_effect(self, expression, display_message=None):
         self.get_temp(expression.get(TARGET)).resources.get(expression[ARGUMENTS][0]).debit(
-            self.eval(expression[ARGUMENTS][1], display_message))
+            self.eval(expression[ARGUMENTS][1], display_message=display_message))
 
     def set_effect(self, expression, display_message=None):
         self.get_temp(expression.get(TARGET)).resources.get(expression[ARGUMENTS][0]).set_func(
-            self.eval(expression[ARGUMENTS][1], display_message))
+            self.eval(expression[ARGUMENTS][1], display_message=display_message))
 
     def get_quantity(self, expression, display_message=None):
         return self.resources.get(expression[VALUE]).quantity
@@ -376,8 +376,8 @@ class MatchAction(BasicContext):
             name = skill.name
         super().__init__(properties=properties, name=name, base=base)
 
-    def activate(self):
-        self.targeting.act(self.target, Trigger(self.trigger), actor=self.actor)
+    def activate(self, display_message=None):
+        self.targeting.act(self.target, Trigger(self.trigger), actor=self.actor, display_message=display_message)
 
     def __str__(self):
         return type(self).__name__ + ': ' + self.actor.name + ' does ' + self.skill_name + ' at ' + self.target.name
@@ -396,7 +396,7 @@ class Targeting(BasicContext):
     def get_targets(self):
         return []
 
-    def act(self, context, trigger, actor=None):
+    def act(self, context, trigger, actor=None, display_message=None):
         trigger = context.re_context(trigger)
         if trigger.check_conditions():
             for effect in trigger.success_effects:
@@ -405,7 +405,7 @@ class Targeting(BasicContext):
             for effect in trigger.failaure_effects:
                 context.affect(effect, actor)
         for effect in trigger.effects:
-            context.affect(effect, actor)
+            context.affect(effect, actor, display_message=display_message)
 
 
 class SelfTargeting(Targeting):
@@ -453,7 +453,7 @@ class Trigger(BasicContext):
         if self.failure_effects is None:
             self.failure_effects = []
 
-    def check_conditions(self, conditions=None):
+    def check_conditions(self, conditions=None, display_message=None):
         if conditions is None:
             conditions = self.conditions
         return super().check_conditions(conditions)
@@ -524,9 +524,9 @@ class MatchResource(BasicContext):
 
         self.resource_set = resource_set
         self.character = resource_set.character
-        self.initial = self.character.eval(properties.get(INITIAL), display_message)
-        self.max_quantity = self.character.eval(properties.get(MAX_QUANTITY), display_message)
-        self.compulsory = self.character.eval(properties.get(COMPULSORY), display_message)
+        self.initial = self.character.eval(properties.get(INITIAL), display_message=display_message)
+        self.max_quantity = self.character.eval(properties.get(MAX_QUANTITY), display_message=display_message)
+        self.compulsory = self.character.eval(properties.get(COMPULSORY), display_message=display_message)
 
         if self.initial is None:
             self.initial = 0
