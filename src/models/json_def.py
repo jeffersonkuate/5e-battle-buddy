@@ -63,6 +63,7 @@ AND = 'and'
 NOT = 'not'
 GET = 'get'
 EVAL = 'eval'
+SET_TEMP = 'set_property'
 
 # Die
 DIE_ROLL = 'roll'

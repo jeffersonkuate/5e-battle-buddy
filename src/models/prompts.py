@@ -6,6 +6,8 @@ PROMPT_YES_NO = "Enter Y or N: "
 PROMPT_NUMERIC = "Enter a number: "
 PROMPT_ENTER = "Press Enter to Continue: "
 
+BUTTON_ENTER = "Press to Continue"
+
 INVALID = "INPUT INVALID!"
 PROCESSING = "PROCESSING ;)"
 

@@ -1,13 +1,11 @@
-from threading import Thread, Lock
+from threading import Thread, Lock, Event
 from tkinter import *
 
 from models.prompts import *
 
-TOP_BUFFER = 1
-LEFT_BUFFER = 1
-PAD_HEIGHT = 1000
-PAD_WIDTH = 50
-GEOMETRY = "300x200"
+BUTTON_START_ROW = 2
+BUTTON_COLUMNS = 2
+WINDOW_GEOMETRY = "300x200"
 
 
 class Display(Thread):
@@ -17,13 +15,14 @@ class Display(Thread):
 
         self.string = string
         self.lock = Lock()
+        self.event = Event()
         self.window = Tk()
         self.window.title(title)
-        self.window.geometry(GEOMETRY)
+        self.window.geometry(WINDOW_GEOMETRY)
         self.label = Label(self.window, text=string)
         self.label.pack()
+        self.buttons = ButtonSet(self.window, event=self.event)
         self.processing_label = Label(self.window, text=PROCESSING)
-        self.buttons = []
         self.logs = []
 
         super().__init__()
@@ -33,26 +32,31 @@ class Display(Thread):
         self.window.mainloop()
 
     def print(self, string=''):
-        self.string = string
+        with self.lock:
+            self.string = string
         self.redraw()
 
     # TODO: account for looooooooong strings
     def input(self, string='', prompt='', options=None):
+        # Empty and None check
+        if not options:
+            options = ['']
+
         with self.lock:
             self.string = THICK_DIVIDER + '\n' + string
             if '' != prompt:
                 self.string += '\n' + THICK_SEPARATOR
                 self.string += '  ' + prompt + '\n'
 
-            vertical_offset = string.count('\n') + 3 + TOP_BUFFER
-            raw = self.pad.getch(vertical_offset, 0)
+            for option in options:
+                self.buttons.add_button(option)
 
-            self.redraw()
+            self.buttons.pack()
+
+
+        self.redraw()
 
         return chr(raw)
-
-    def add_button(self, string):
-        self.buttons.append(Button(self.window, text=string))
 
     def processing(self):
         self.string += '\n\n' + THICK_DIVIDER + '\n' + PROCESSING
@@ -74,9 +78,34 @@ class Display(Thread):
 
 
 class ButtonSet:
-    def __init__(self, window):
+    def __init__(self, window, event=None):
         self.window = window
+        self.buttons = []
+        self.result = None
+        self.event = event
+
+    def clear_buttons(self):
+        for button in self.buttons:
+            button.pack_forget()
         self.buttons = []
 
     def add_button(self, string):
-        self.buttons.append(Button(self.window, text=string, command=(lambda: string)))
+        text = string if string is not None else BUTTON_ENTER
+        self.buttons.append(Button(self.window, text=text, command=(lambda: self.plant(string))))
+
+    def pack(self):
+        pass
+
+    # Why did I name this parameter seed instead of result?
+    # Probably the same reason I write comments no one will read.
+    def plant(self, seed):
+        self.result = seed
+        if self.event is not None:
+            self.event.set()
+
+    # "It ain't much, but it's honest work"
+    def harvest(self):
+        result = self.result
+        self.result = None
+        self.event.clear()
+        return result

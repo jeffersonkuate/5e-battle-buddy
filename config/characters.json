@@ -24,15 +24,8 @@
         "gnome_cunning"
       ],
       "skills": [
+        "abstain",
         "dodge"
-      ],
-      "resources": [
-        "movement",
-        "action",
-        "bonus_action",
-        "reaction",
-        "life",
-        "hit_point"
       ]
     },
     "Super Goblin": {
@@ -52,15 +45,8 @@
         "mischievous"
       ],
       "skills": [
+        "abstain",
         "dodge"
-      ],
-      "resources": [
-        "movement",
-        "action",
-        "bonus_action",
-        "reaction",
-        "life",
-        "hit_point"
       ]
     },
     "PC1": {

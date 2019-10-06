@@ -70,7 +70,8 @@ class BasicContext(MutableMapping, Hashable):
             NOT: self.func_not,
             GET: self.func_get,
             EVAL: self.eval,
-            DIE_ROLL: self.roll
+            DIE_ROLL: self.roll,
+            SET_TEMP: self.set_temp_func
         }
 
         if properties is not None:
@@ -218,6 +219,15 @@ class BasicContext(MutableMapping, Hashable):
             match_initiative = self.eval(expression, display_message=display_message)
             self.match_initiative = match_initiative
         return match_initiative
+
+    # Nononono what do you think you're doing? Move along; nothing to see here.
+    # Look I know 5ebb-json is supposed to be non-destructive, this is for emergencies!
+    # ... still here? smh, sneak in one little assignment operator so you can pretend your
+    # made up language is Turing Complete and all of a sudden *you're* the bad guy.
+    def set_temp_func(self, expression, display_message=None):
+        arguments = expression[ARGUMENTS]
+        return self.set_temp(self.eval(arguments[0], display_message=display_message),
+                             self.eval(arguments[1], display_message=display_message))
 
     def affect(self, expression, actor=None, display_message=None):
         self.set_temp(ACTOR, actor)
