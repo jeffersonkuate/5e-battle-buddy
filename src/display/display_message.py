@@ -30,4 +30,4 @@ class DisplayMessage:
         self.display.print(self.display_message + THICK_DIVIDER)
 
     def input(self):
-        self.display.input(self.display_message, PROMPT_ENTER)
+        self.display.input(self.display_message)

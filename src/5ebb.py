@@ -1,13 +1,9 @@
 import json
 import os
 
+from basics import *
 # from display.display import Display
 from display.better_display import Display
-from models.json_def import *
-from models.prompts import *
-from basics.basic_methods import *
-from basics.basics import Environment
-from strategy import StrategyManager
 from strategy import StrategyManager
 
 
@@ -91,7 +87,7 @@ def report_strategy(strategy, display):
     for node in strategy.nodes:
         report += '\n' + THICK_DIVIDER + '\n'
         report += str(node)
-    display.input(string=report, prompt=PROMPT_ENTER)
+    display.input(string=report)
 
 
 def main():
@@ -103,20 +99,21 @@ def main():
     # BasicContext.logger = display
 
     while True:
-        user_input = display.input("There have been " + str(optimization_count)
-                                   + " optimization(s) made.\n"
-                                   + "Enter s to step through a demo optimized match, "
-                                   + "q to quit, i for info, the name of a strategy to optimize it,"
-                                   + " or nothing to optimize all strategies")
+        user_input = display.input("There have been " + str(optimization_count) + " optimization(s) made.\n"
+                                   + "Start: step through a demo optimized match\n"
+                                   + "Info: get info on current strategies\n"
+                                   + "Optimize: optimize all strategies\n"
+                                   + "Quit: quit program\n",
+                                   options=['Start', 'Info', 'Optimize', 'Quit']).lower()
         # user_input = ''
 
         if re_match(REGEX_QUIT, user_input):
             quit()
-        elif re_match(REGEX_STEP, user_input):
+        elif re_match(REGEX_START, user_input):
             manager.step(display)
         elif re_match(REGEX_INFO, user_input):
             report_strategies(manager, display)
-        elif re_match(REGEX_BLANK, user_input):
+        elif re_match(REGEX_OPTIMIZE, user_input):
             for strategy_name in manager.strategies:
                 manager.optimize(strategy_name)
                 optimization_count += 1

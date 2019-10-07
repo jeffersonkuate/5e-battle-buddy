@@ -245,16 +245,16 @@ class MatchCharacter(BasicContext):
     def get_hp(self):
         return self.resources.get(HIT_POINT)
 
-    def start_turn(self, expression=None):
+    def start_turn(self, expression=None, display_message=None):
         self.is_turn = True
 
-    def end_turn(self, expression=None):
+    def end_turn(self, expression=None, display_message=None):
         self.is_turn = False
 
-    def is_in_play(self, expression=None):
+    def is_in_play(self, expression=None, display_message=None):
         return self.in_play
 
-    def remove_from_play(self, expression=None):
+    def remove_from_play(self, expression=None, display_message=None):
         self.in_play = False
 
     def attack(self, expression, display_message=None):

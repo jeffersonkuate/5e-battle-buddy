@@ -1,5 +1,5 @@
 from match import *
-from models.prompts import *
+from basics import *
 
 
 # Strategy

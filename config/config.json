@@ -1,7 +1,7 @@
 {
   "game": "1v1",
   "strategy": {
-    "maximum_turns": 100,
+    "maximum_turns": 10,
     "simulations_per_generation": 10,
     "novel_strategy_count": 10,
     "cloned_strategy_count": 5,

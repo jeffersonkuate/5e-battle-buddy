@@ -7,9 +7,8 @@ from models.prompts import *
 # Why are you reading this, DON'T USE THIS CLASS
 # (see display.better_display)
 class Display:
-    def __init__(self, string='', response=False):
+    def __init__(self, string=''):
         self.string = string
-        self.response = response
         self.logs = []
         self.clear = (lambda: os.system('cls')) if os.name == 'nt' else (lambda: os.system('clear'))
 

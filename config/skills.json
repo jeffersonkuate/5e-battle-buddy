@@ -90,7 +90,7 @@
             "profile": "debit",
             "arguments": [
               "hit_point",
-              25
+              12.5
             ]
           },
           {
