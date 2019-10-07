@@ -12,6 +12,12 @@ class Die:
             return count
 
 
+# shh shhhh, we don't talk about this class
+class Finalizer:
+    def finalize(self):
+        os._exit(0)
+
+
 # Models
 
 class BasicContext(MutableMapping, Hashable):

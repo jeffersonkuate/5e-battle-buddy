@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 from basics import *
 # from display.display import Display
@@ -91,7 +92,7 @@ def report_strategy(strategy, display):
 
 
 def main():
-    display = Display()
+    display = Display(finalizer=Finalizer())
     config = load_config()
     # display.print(json.dumps(config))
     manager = unload_config(config)

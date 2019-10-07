@@ -14,19 +14,20 @@ FONT = ('Courier', 15)
 
 
 class Display(Thread):
-    def __init__(self, string='', title=''):
+    def __init__(self, string='', title='', finalizer=None):
         if title == '':
             title = 'Display'
 
         self.string = string
         self.title = title
+        self.finalizer = finalizer
         self.buttons_active = False
         self.event = Event()
         self.lock = Lock()
         # self.processing_label = Label(self.window, text=PROCESSING)
         self.logs = []
 
-        super().__init__()
+        super().__init__(daemon=True)
         self.start()
         self.event.wait()
         self.event.clear()
@@ -49,6 +50,9 @@ class Display(Thread):
         self.event.set()
 
         self.window.mainloop()
+
+        if self.finalizer is not None:
+            self.finalizer.finalize()
 
     def print(self, string=''):
         with self.lock:
