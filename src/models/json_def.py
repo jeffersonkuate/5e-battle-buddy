@@ -12,7 +12,7 @@ GAME_CHARACTERS = 'game_characters'
 
 # Strategy Manager Properties
 MAXIMUM_TURNS = 'maximum_turns'
-SIMULATIONS_PER_GENERATION = 'simulations_per_generation'
+SIMULATIONS_PER_STRATEGY = 'simulations_per_strategy'
 NOVEL_STRATEGY_COUNT = 'novel_strategy_count'
 CLONED_STRATEGY_COUNT = 'cloned_strategy_count'
 MUTATED_STRATEGY_COUNT = 'mutated_strategy_count'

@@ -88,12 +88,14 @@ class MatchContext(BasicContext):
                     return True
         return False
 
-    def get_fitness(self, strategy_name):
-        value = 0
+    def get_fitness_set(self):
+        fitness_set = {}
         for character in self.match_characters:
-            if self.strategies.get_strategy(character).name == strategy_name:
-                value += character.resources.get_total_value()
-        return value
+            cur_strategy_name = self.strategies.get_strategy(character).name
+            if fitness_set.get(cur_strategy_name) is None:
+                fitness_set[cur_strategy_name] = 0
+            fitness_set[cur_strategy_name] += character.resources.get_total_value()
+        return fitness_set
 
     def __str__(self):
         try:

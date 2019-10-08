@@ -1,8 +1,11 @@
 from match import *
 from basics import *
 
+from multiprocessing.pool import Pool
+
 
 # Strategy
+
 
 class StrategyManager(BasicContext):
     def __init__(self, match_data, expression):
@@ -11,7 +14,7 @@ class StrategyManager(BasicContext):
         self.match_data = match_data
         self.match = None
         self.maximum_turns = expression[MAXIMUM_TURNS]
-        self.simulations_per_generation = expression[SIMULATIONS_PER_GENERATION]
+        self.simulations_per_strategy = expression[SIMULATIONS_PER_STRATEGY]
         self.novel_strategy_count = expression[NOVEL_STRATEGY_COUNT]
         self.cloned_strategy_count = expression[CLONED_STRATEGY_COUNT]
         self.mutated_strategy_count = expression[MUTATED_STRATEGY_COUNT]
@@ -60,36 +63,27 @@ class StrategyManager(BasicContext):
                 strategy2 = mergeable_strategies.pop()
                 strategies.append(strategy1.merge(strategy2))
 
-            # i = 0
-            # for strategy in strategies:
-            #     print("Strategy " + str(i) + ":")
-            #     for node in strategy.nodes:
-            #         print(str(node) + "\n" + THICK_SEPARATOR + "\n")
-            #     i += 1
+            with Pool() as pool:
+                for strategy in strategies:
+                    temp_strategies = StrategyMap(self, self.strategies.strategies)
+                    temp_strategies[strategy_name] = strategy
+                    fitness_set_values = pool.imap_unordered(
+                        get_fitness,
+                        self.get_match_context_generator(temp_strategies)
+                        )
+                    fitness_values = map(lambda fitness_set: fitness_set.get(strategy_name), fitness_set_values)
+                    total_fitness = sum(fitness_values)
 
-            for strategy in strategies:
-                temp_strategies = StrategyMap(self, self.strategies.strategies)
-                temp_strategies[strategy_name] = strategy
-                fitness = 0
-                for i in range(self.simulations_per_generation):
-                    match_context = MatchContext(self.maximum_turns, properties=self.match_data,
-                                                 strategies=temp_strategies)
+                    average_fitness = total_fitness / self.simulations_per_strategy
+                    self.log("Strategy " + strategy.name + " averaged a fitness of " + str(average_fitness))
+                    strategy.fitness = average_fitness
 
-                    match_context.simulate()
-                    cur_fitness = match_context.get_fitness(strategy_name)
-                    self.log("Strategy " + strategy.name + " scored a fitness of " + str(cur_fitness))
-                    fitness += cur_fitness
+                    cloneable_strategies.append(strategy)
+                    mutateable_strategies.append(strategy)
+                    mergeable_strategies.append(strategy)
 
-                average_fitness = fitness / self.simulations_per_generation
-                self.log("Strategy " + strategy.name + " averaged a fitness of " + str(average_fitness))
-                strategy.fitness = average_fitness
-
-                cloneable_strategies.append(strategy)
-                mutateable_strategies.append(strategy)
-                mergeable_strategies.append(strategy)
-
-                if strategy.fitness > best_strategy.fitness:
-                    best_strategy = strategy
+                    if strategy.fitness > best_strategy.fitness:
+                        best_strategy = strategy
 
             cloneable_strategies = self.trim_cloneable(cloneable_strategies)
             mutateable_strategies = self.trim_mutateable(mutateable_strategies)
@@ -97,6 +91,14 @@ class StrategyManager(BasicContext):
             random.shuffle(mergeable_strategies)
 
         self.strategies[strategy_name] = best_strategy
+
+    def get_match_context_generator(self, temp_strategies):
+        count = 0
+        while count < self.simulations_per_strategy:
+            count += 1
+            match_context = MatchContext(self.maximum_turns, properties=self.match_data,
+                                         strategies=temp_strategies)
+            yield match_context
 
     def trim_cloneable(self, strategies):
         return trim(strategies, self.cloned_strategy_count, lambda strategy: strategy.fitness)
@@ -109,6 +111,11 @@ class StrategyManager(BasicContext):
 
     def get_random_weight(self):
         return random.randint(0, 10)
+
+
+def get_fitness(match_context):
+    match_context.simulate()
+    return match_context.get_fitness_set()
 
 
 class StrategyMap(BasicContext):
