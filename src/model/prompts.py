@@ -11,8 +11,8 @@ BUTTON_ENTER = "Press to Continue"
 INVALID = "INPUT INVALID!"
 PROCESSING = "PROCESSING ;)"
 
-THICK_DIVIDER = "=============================="
-THIN_DIVIDER = "------------------------------"
+THICK_DIVIDER = "\n==============================\n"
+THIN_DIVIDER = "\n------------------------------\n"
 THICK_SEPARATOR = "||"
 THIN_SEPARATOR = "|"
 

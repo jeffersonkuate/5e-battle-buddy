@@ -186,7 +186,7 @@
               }
             ],
             "damage": {
-              "add": {
+              "addition": {
                 "arguments": [
                   "$damage_base",
                   "$damage_bonus"
@@ -266,7 +266,7 @@
               {
                 "actor": {
                   "property": {
-                    "value": "proficiency"
+                    "value": "proficiency_bonus"
                   }
                 }
               }
@@ -374,23 +374,21 @@
           }
         },
         "$damage_bonus": {
-          "max": {
-            "arguments": [
-              {
-                "actor": {
+          "actor": {
+            "max": {
+              "arguments": [
+                {
                   "property": {
                     "value": "strength_am"
                   }
-                }
-              },
-              {
-                "actor": {
+                },
+                {
                   "property": {
                     "value": "dexterity_am"
                   }
                 }
-              }
-            ]
+              ]
+            }
           }
         }
       }

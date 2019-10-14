@@ -1,21 +1,4 @@
-from basics import *
-
-
-class Die:
-    def __init__(self, rand_func=random.randint):
-        self.rand_func = rand_func
-
-    def roll(self, die_count, sides):
-        count = 0
-        for i in range(die_count):
-            count += self.rand_func(1, sides)
-            return count
-
-
-# shh shhhh, we don't talk about this class
-class Finalizer:
-    def finalize(self):
-        os._exit(0)
+from basic import *
 
 
 # Models
@@ -50,6 +33,9 @@ class BasicContext(MutableMapping, Hashable):
 
     def __init__(self, properties=None, name='', base=None):
         self.base = base
+        # if name == '' and base is not None:
+        #     name = base.get(NAME)
+
         self.name = name
         self.properties = {NAME: name}
         self.initiative = None
@@ -153,7 +139,7 @@ class BasicContext(MutableMapping, Hashable):
         for argument in arguments[1:]:
             argument_eval = self.eval(argument, display_message=display_message)
             if argument_eval > value:
-                value = argument
+                value = argument_eval
         return value
 
     def minimum(self, expression, display_message=None):
@@ -180,7 +166,7 @@ class BasicContext(MutableMapping, Hashable):
         arguments = expression[ARGUMENTS]
         value = self.eval(arguments[0], display_message=display_message)
         for argument in arguments[1:]:
-            if value is None or self.eval(argument, display_message=display_message) not in value:
+            if self.eval(argument, display_message=display_message) not in value:
                 return False
         return True
 
@@ -216,18 +202,6 @@ class BasicContext(MutableMapping, Hashable):
             display_message.add_sub_section(roll_string)
         return roll
 
-    def get_initiative(self, expression=None, display_message=None):
-        if expression is None:
-            expression = self.initiative
-        if expression is None:
-            expression = self.roll(get_d20())
-
-        match_initiative = self.match_initiative
-        if match_initiative is None:
-            match_initiative = self.eval(expression, display_message=display_message)
-            self.match_initiative = match_initiative
-        return match_initiative
-
     # Nononono what do you think you're doing? Move along; nothing to see here.
     # Look I know 5ebb-json is supposed to be non-destructive, this is for emergencies!
     # ... still here? smh, sneak in one little assignment operator so you can pretend your
@@ -255,16 +229,24 @@ class BasicContext(MutableMapping, Hashable):
         self.match = match
 
     def eval(self, expression, display_message=None):
-        if is_evaluable(expression):
-            key = list(expression.keys())[0]
-            func = self.function_map.get(key)
-            if func is not None:
-                return func(expression[key], display_message=display_message)
+        try:
+            return_value = None
+            if is_evaluable(expression):
+                key = get_child_key(expression)
+                func = self.function_map.get(key)
+                if key == NULLABLE:
+                    return Nullable(self.eval(expression[key]))
+                elif func is not None:
+                    return_value = func(expression[key], display_message=display_message)
+                else:
+                    value = self.get(key)
+                    if value is not None:
+                        return_value = value.eval(expression[key], display_message=display_message)
             else:
-                value = self.get(key)
-                return value.eval(expression[key], display_message=display_message) if value is not None else None
-        else:
-            return expression
+                return_value = expression
+        except Exception as exception:
+            raise exception
+        return return_value
 
     def re_context(self, base):
         klass = BasicContext
@@ -277,9 +259,7 @@ class BasicContext(MutableMapping, Hashable):
         return klass(properties=properties, base=self)
 
     def get(self, key):
-        if key == INITIATIVE:
-            return self.get_initiative()
-        elif hasattr(self, str(key)):
+        if hasattr(self, str(key)):
             value = getattr(self, str(key))
         else:
             value = self.properties.get(key)
@@ -320,6 +300,14 @@ class BasicContext(MutableMapping, Hashable):
         return type(self).__name__ + ': ' + self.name + ' [' + str(id(self)) + ']'
 
 
+# TODO: make this class support all int, list, and dict operations
+#  so I don't have to null-check eval functions
+class Nullable(BasicContext):
+    def __init__(self, value, properties=None, name='', base=None):
+        self.value = value
+        super().__init__(properties, name, base)
+
+
 class Evaluable(BasicContext):
     def __init__(self, properties=None, name='', base=None):
         super().__init__(properties, name, base)
@@ -337,6 +325,10 @@ class Environment(BasicContext):
 
 def get_d20():
     return {DIE_COUNT: 1, DIE_SIDES: 20}
+
+
+def get_child_key(expression):
+    return list(expression.keys())[0]
 
 
 def pop(expression, key):
@@ -380,6 +372,14 @@ def trim(items, threshold, sort_value=lambda x: 0):
     return items
 
 
+def shallow_fill(dictionary, update):
+    if update is None:
+        return
+    for key in update:
+        if key not in dictionary:
+            dictionary[key] = deep_copy(update[key])
+
+
 def deep_fill(dictionary, update):
     if is_map(update):
         for key in update:
@@ -402,11 +402,12 @@ def deep_copy(dictionary):
 
 def collapse_set(collection, context):
     new_set = []
-    for value in collection:
-        if is_list(context[value]):
-            new_set += collapse_set(context[value], context)
+    for key in collection:
+        value = context[key]
+        if is_list(value):
+            new_set += collapse_set(value, context)
         else:
-            new_set.append(context[value])
+            new_set.append(value)
     return new_set
 
 
@@ -426,6 +427,10 @@ def is_map(context):
 
 def is_evaluable(expression):
     return issubclass(type(expression), dict) or issubclass(type(expression), Evaluable)
+
+
+def is_nullable(expression):
+    return issubclass(type(expression), Nullable)
 
 
 def is_list(expression):
@@ -454,3 +459,20 @@ def re_search(reg, string):
 
 def re_match(reg, string):
     return not (re.match(reg.lower(), string.lower()) is None)
+
+
+class Die:
+    def __init__(self, rand_func=random.randint):
+        self.rand_func = rand_func
+
+    def roll(self, die_count, sides):
+        count = 0
+        for i in range(die_count):
+            count += self.rand_func(1, sides)
+            return count
+
+
+# shh shhhh, we don't talk about this class
+class Finalizer:
+    def finalize(self):
+        os._exit(0)

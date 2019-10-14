@@ -1,18 +1,20 @@
 {
   "game": "1v1",
   "strategy": {
-    "maximum_turns": 50,
-    "simulations_per_generation": 50,
-    "novel_strategy_count": 50,
-    "cloned_strategy_count": 50,
-    "mutated_strategy_count": 10,
-    "merged_strategy_count": 20,
-    "max_strategy_complexity": 20,
+    "maximum_turns": 10,
+    "simulations_per_strategy": 10,
+    "novel_strategy_count": 10,
+    "cloned_strategy_count": 5,
+    "mutated_strategy_count": 5,
+    "merged_strategy_count": 5,
+    "max_strategy_complexity": 10,
     "mutation_coefficient": 0.005,
-    "fitness_improvement_threshold": 0.005,
+    "fitness_improvement_threshold": 1.005,
     "strategy_grouping": {
-      "property": {
-        "value": "alignment"
+      "alignment": {
+        "property": {
+          "value": "name"
+        }
       }
     }
   },
@@ -25,10 +27,12 @@
   ],
   "characters": {
     "Mr. Jazz": {
+      "prototype": true,
+      "name": "Mr. Jazz",
       "class": "Bard",
       "race": "Gnome",
       "level": 4,
-      "proficiency": 2,
+      "proficiency_bonus": 2,
       "armor_class": 17,
       "initiative_bonus": 4,
       "spell_save": 12,
@@ -42,29 +46,23 @@
       "charisma": 15,
       "max_hp": 32,
       "abilities": [
-        "basic",
-        "gnome_cunning"
+        "basic"
       ],
       "skills": [
+        "rapier_action_attack",
         "abstain",
         "movement",
         "dodge",
-        "rapier_action_attack",
         "rapier_opportunity_attack",
         "heavy_crossbow_attack",
         "super_heavy_crossbow_attack",
-        "disengage"
-      ],
-      "resources": [
-        "movement",
-        "action",
-        "bonus_action",
-        "reaction",
-        "life",
-        "hit_point"
+        "disengage",
+        "dodge"
       ]
     },
     "Super Goblin": {
+      "prototype": true,
+      "name": "Super Goblin",
       "armor_class": 15,
       "base_speed": 30,
       "strength": 8,
@@ -84,48 +82,95 @@
         "dodge",
         "goblin_scimitar_action_attack",
         "goblin_scimitar_opportunity_attack",
-        "disengage"
-      ],
-      "resources": [
-        "movement",
-        "action",
-        "bonus_action",
-        "reaction",
-        "life",
-        "hit_point"
+        "disengage",
+        "dodge"
       ]
-    }
+    },
+    "PC1": {
+      "prototypes": [
+        "Mr. Jazz"
+      ],
+      "name": "Mr. Jazz",
+      "alignment": "pc",
+      "position": [
+        50,
+        20
+      ],
+      "initiative": {
+        "addition": {
+          "arguments": [
+            {
+              "roll": {
+                "count": 1,
+                "sides": 20
+              }
+            },
+            {
+              "property": {
+                "value": "initiative_bonus"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Monster1": {
+      "prototypes": [
+        "Super Goblin"
+      ],
+      "name": "Super Goblin",
+      "alignment": "monster",
+      "position": [
+        50,
+        50
+      ],
+      "initiative": {
+        "alignment": {
+          "property": {
+            "value": "initiative"
+          }
+        }
+      }
+    },
+    "Monster2": {
+      "prototypes": [
+        "Super Goblin"
+      ],
+      "name": "Super Goblin",
+      "alignment": "monster",
+      "position": [
+        50,
+        50
+      ],
+      "initiative": {
+        "alignment": {
+          "property": {
+            "value": "initiative"
+          }
+        }
+      }
+    },
+    "1v1": [
+      "PC1",
+      "Monster1"
+    ],
+    "1v2": [
+      "1v1",
+      "Monster2"
+    ]
   },
   "skills": {
+    "basic": [
+      "abstain",
+      "movement",
+      "dodge",
+      "disengage"
+    ],
     "abstain": {
       "profile": "abstain",
       "targeting": {
         "profile": "self"
       },
-      "conditions": [
-        {
-          "any": {
-            "arguments": [
-              {
-                "map": {
-                  "arguments": [
-                    {
-                      "property": {
-                        "value": "resources"
-                      }
-                    },
-                    {
-                      "property": {
-                        "value": "compulsory"
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-      ],
       "trigger": {
         "effects": [
           {
@@ -164,17 +209,9 @@
           },
           {
             "profile": "debit",
+            "target": "actor",
             "arguments": [
-              {
-                "actor": {
-                  "resources": {
-                    "property": {
-                      "value": "movement"
-                    }
-                  }
-                }
-              },
-              "quantity",
+              "movement",
               1
             ]
           }
@@ -188,12 +225,8 @@
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "action": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "action"
                 }
               },
               1
@@ -201,19 +234,29 @@
           }
         }
       ],
+      "targeting": {
+        "profile": "self"
+      },
       "trigger": {
         "effects": [
           {
+            "profile": "debit",
+            "arguments": [
+              "action",
+              1
+            ]
+          },
+          {
+            "profile": "debit",
+            "arguments": [
+              "hit_point",
+              12.5
+            ]
+          },
+          {
             "profile": "credit",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "dodge_token"
-                  }
-                }
-              },
-              "quantity",
+              "dodge_token",
               1
             ]
           }
@@ -223,16 +266,13 @@
     "disengage": {
       "profile": "disengage",
       "conditions": [
+        false,
         {
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "action": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "action"
                 }
               },
               1
@@ -245,14 +285,14 @@
           {
             "profile": "credit",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "disengage_token"
-                  }
-                }
-              },
-              "quantity",
+              "disengage_token",
+              1
+            ]
+          },
+          {
+            "profile": "debit",
+            "arguments": [
+              "action",
               1
             ]
           }
@@ -267,120 +307,73 @@
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "get": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": {
-                            "property": {
-                              "value": "attack_resource"
-                            }
-                          }
-                        }
-                      },
-                      "quantity"
-                    ]
-                  }
+                "quantity": {
+                  "value": "$attack_resource"
                 }
               },
-              {
-                "property": {
-                  "value": "attack_cost"
-                }
-              }
+              "$attack_cost"
             ]
           }
         }
       ],
       "trigger": {
-        "conditions": [
-          {
-            "greater_or_equal": {
-              "arguments": [
-                {
-                  "add": {
-                    "arguments": [
-                      {
-                        "roll": {
-                          "count": 1,
-                          "sides": 20
-                        }
-                      },
-                      {
-                        "eval": {
-                          "property": {
-                            "value": "attack_bonus"
-                          }
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  "targeting": {
-                    "property": {
-                      "value": "armor_class"
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        ],
-        "success_effects": [
+        "effects": [
           {
             "profile": "attack",
-            "type": "piercing",
-            "value": {
-              "add": {
+            "type": "$damage_type",
+            "hit_metric": "$hit_metric",
+            "save_metric": "$save_metric",
+            "hit_conditions": [
+              {
+                "greater_or_equal": {
+                  "arguments": [
+                    {
+                      "attack_attributes": {
+                        "property": {
+                          "value": "hit_metric"
+                        }
+                      }
+                    },
+                    {
+                      "attack_attributes": {
+                        "property": {
+                          "value": "save_metric"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "damage": {
+              "addition": {
                 "arguments": [
-                  {
-                    "eval": {
-                      "property": {
-                        "value": "damage_base"
-                      }
-                    }
-                  },
-                  {
-                    "eval": {
-                      "property": {
-                        "value": "damage_bonus"
-                      }
-                    }
-                  }
+                  "$damage_base",
+                  "$damage_bonus"
                 ]
               }
             }
-          }
-        ],
-        "effects": [
+          },
           {
             "profile": "debit",
+            "target": "actor",
             "arguments": [
-              {
-                "actor": {
-                  "resources": {
-                    "property": {
-                      "value": {
-                        "property": {
-                          "value": "attack_resource"
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              "quantity",
+              "$attack_resource",
               1
             ]
           }
         ]
+      },
+      "properties": {
+        "$save_metric": {
+          "property": {
+            "value": "armor_class"
+          }
+        },
+        "$damage_type": [
+          "physical"
+        ]
       }
-    },
-    "multi-resource-attack": {
-      "prototype": true,
-      "conditions": false
     },
     "action_attack": {
       "prototype": true,
@@ -389,20 +382,20 @@
         "attack"
       ],
       "properties": {
-        "attack_resource": "action"
+        "$attack_resource": "action"
       }
     },
     "opportunity_attack": {
       "prototype": true,
       "profile": "opportunity_attack",
+      "conditions": [
+        false
+      ],
       "prototypes": [
-        "multi-resource-attack"
+        "attack"
       ],
       "properties": {
-        "attack_resource": [
-          "reaction",
-          "opportunity"
-        ]
+        "$attack_resource": "reaction"
       }
     },
     "melee_weapon_attack": {
@@ -411,10 +404,18 @@
         "attack"
       ],
       "properties": {
-        "attack_cost": 1,
-        "attack_bonus": {
-          "add": {
+        "$attack_cost": 1,
+        "$hit_metric": {
+          "addition": {
             "arguments": [
+              {
+                "actor": {
+                  "roll": {
+                    "count": 1,
+                    "sides": 20
+                  }
+                }
+              },
               {
                 "actor": {
                   "property": {
@@ -425,14 +426,14 @@
               {
                 "actor": {
                   "property": {
-                    "value": "proficiency"
+                    "value": "proficiency_bonus"
                   }
                 }
               }
             ]
           }
         },
-        "damage_bonus": {
+        "$damage_bonus": {
           "actor": {
             "property": {
               "value": "strength_am"
@@ -452,10 +453,18 @@
         "attack"
       ],
       "properties": {
-        "attack_cost": 1,
-        "attack_bonus": {
-          "add": {
+        "$attack_cost": 1,
+        "$hit_metric": {
+          "addition": {
             "arguments": [
+              {
+                "actor": {
+                  "roll": {
+                    "count": 1,
+                    "sides": 20
+                  }
+                }
+              },
               {
                 "actor": {
                   "property": {
@@ -466,14 +475,14 @@
               {
                 "actor": {
                   "property": {
-                    "value": "proficiency"
+                    "value": "proficiency_bonus"
                   }
                 }
               }
             ]
           }
         },
-        "damage_bonus": {
+        "$damage_bonus": {
           "actor": {
             "property": {
               "value": "dexterity_am"
@@ -483,10 +492,6 @@
       },
       "targeting": {
         "profile": "ranged_attack",
-        "range": [
-          100,
-          400
-        ],
         "affinity": "hostile"
       }
     },
@@ -496,8 +501,8 @@
         "melee_weapon_attack"
       ],
       "properties": {
-        "attack_cost": 1,
-        "attack_bonus": {
+        "$attack_cost": 1,
+        "$attack_bonus": {
           "add": {
             "arguments": [
               {
@@ -522,13 +527,13 @@
               },
               {
                 "property": {
-                  "value": "proficiency"
+                  "value": "proficiency_bonus"
                 }
               }
             ]
           }
         },
-        "damage_bonus": {
+        "$damage_bonus": {
           "max": {
             "arguments": [
               {
@@ -556,7 +561,7 @@
         "finesse_weapon_attack"
       ],
       "properties": {
-        "damage_base": {
+        "$damage_base": {
           "actor": {
             "roll": {
               "count": 1,
@@ -580,10 +585,11 @@
     },
     "heavy_crossbow_attack": {
       "prototypes": [
-        "action_attack"
+        "action_attack",
+        "ranged_weapon_attack"
       ],
       "properties": {
-        "damage_base": {
+        "$damage_base": {
           "actor": {
             "roll": {
               "count": 1,
@@ -595,10 +601,11 @@
     },
     "super_heavy_crossbow_attack": {
       "prototypes": [
-        "action_attack"
+        "action_attack",
+        "ranged_weapon_attack"
       ],
       "properties": {
-        "damage_base": {
+        "$damage_base": {
           "actor": 5
         }
       }
@@ -606,13 +613,12 @@
     "goblin_scimitar_attack": {
       "prototype": true,
       "prototypes": [
-        "attack"
+        "melee_weapon_attack"
       ],
       "properties": {
-        "attack_cost": 1,
-        "attack_bonus": 4,
-        "damage_bonus": 2,
-        "damage_base": {
+        "$attack_bonus": 4,
+        "$damage_bonus": 2,
+        "$damage_base": {
           "actor": {
             "roll": {
               "count": 1,
@@ -641,9 +647,40 @@
       "dodge",
       "dodge_discard",
       "disengage",
-      "disengage_discard",
-      "mortal"
+      "mortal",
+      "initialize"
     ],
+    "initialize": {
+      "hook": {
+        "profile": "initialize"
+      },
+      "trigger": {
+        "effects": [
+          {
+            "profile": "set",
+            "arguments": [
+              "hit_point",
+              {
+                "resources": {
+                  "hit_point": {
+                    "property": {
+                      "value": "initial"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "profile": "set",
+            "arguments": [
+              "life",
+              1
+            ]
+          }
+        ]
+      }
+    },
     "basic_turn": {
       "hook": {
         "profile": "start_turn"
@@ -653,61 +690,30 @@
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "movement"
-                  }
-                }
-              },
-              "quantity",
+              "movement",
               1
             ]
           },
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "action"
-                  }
-                }
-              },
-              "quantity",
+              "action",
               1
             ]
           },
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "bonus_action"
-                  }
-                }
-              },
-              "quantity",
+              "bonus_action",
               1
             ]
           },
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "reaction"
-                  }
-                }
-              },
-              "quantity",
+              "reaction",
               1
             ]
-          },
-          {
-            "profile": "start_turn"
           }
         ]
       }
@@ -721,81 +727,15 @@
           {
             "profile": "debit",
             "arguments": [
+              "mischief",
               {
-                "resources": {
+                "damage_attributes": {
                   "property": {
-                    "value": "mischief"
+                    "value": "damage"
                   }
-                }
-              },
-              "quantity",
-              {
-                "property": {
-                  "value": "value"
                 }
               }
             ]
-          }
-        ]
-      }
-    },
-    "gnome_cunning": {
-      "hook": {
-        "profile": "roll"
-      },
-      "conditions": [
-        {
-          "current_roll": {
-            "or": {
-              "arguments": [
-                {
-                  "contains": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": "attributes"
-                        }
-                      },
-                      "magic",
-                      "wisdom"
-                    ]
-                  }
-                },
-                {
-                  "contains": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": "attributes"
-                        }
-                      },
-                      "magic",
-                      "charisma"
-                    ]
-                  }
-                },
-                {
-                  "contains": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": "attributes"
-                        }
-                      },
-                      "magic",
-                      "intelligence"
-                    ]
-                  }
-                }
-              ]
-            }
-          }
-        }
-      ],
-      "trigger": {
-        "effects": [
-          {
-            "profile": "advantage"
           }
         ]
       }
@@ -809,12 +749,8 @@
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "dodge_token": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "dodge_token"
                 }
               },
               1
@@ -822,23 +758,17 @@
           }
         },
         {
-          "current_roll": {
-            "or": {
-              "arguments": [
-                {
-                  "contains": {
-                    "arguments": [
-                      {
-                        "property": {
-                          "value": "attributes"
-                        }
-                      },
-                      "attack"
-                    ]
+          "contains": {
+            "arguments": [
+              {
+                "attack_attributes": {
+                  "property": {
+                    "value": "tags"
                   }
                 }
-              ]
-            }
+              },
+              "physical"
+            ]
           }
         }
       ],
@@ -859,14 +789,7 @@
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "dodge_token"
-                  }
-                }
-              },
-              "quantity",
+              "dodge_token",
               0
             ]
           }
@@ -883,12 +806,8 @@
           "greater_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "disengage_token": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "disengage_token"
                 }
               },
               1
@@ -899,52 +818,25 @@
       "trigger": {
         "effects": [
           {
-            "profile": "disengage"
-          }
-        ]
-      }
-    },
-    "disengage_discard": {
-      "hook": {
-        "profile": "end_turn"
-      },
-      "trigger": {
-        "effects": [
-          {
-            "profile": "set",
-            "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "disengage_token"
-                  }
-                }
-              },
-              "quantity",
-              0
-            ]
+            "profile": "TODO"
           }
         ]
       }
     },
     "mortal": {
       "hook": {
-        "profile": "start_turn"
+        "profile": "ticker"
       },
       "conditions": [
         {
-          "greater_or_equal": {
+          "less_or_equal": {
             "arguments": [
               {
-                "resources": {
-                  "hit_point": {
-                    "property": {
-                      "value": "quantity"
-                    }
-                  }
+                "quantity": {
+                  "value": "hit_point"
                 }
               },
-              1
+              0
             ]
           }
         }
@@ -954,14 +846,7 @@
           {
             "profile": "set",
             "arguments": [
-              {
-                "resources": {
-                  "property": {
-                    "value": "life"
-                  }
-                }
-              },
-              "quantity",
+              "life",
               0
             ]
           },
@@ -981,8 +866,7 @@
       }
     },
     "action": {
-      "initial": 1,
-      "compulsory": true
+      "initial": 1
     },
     "bonus_action": {
       "initial": 1
@@ -992,10 +876,10 @@
       "initial": 1
     },
     "dodge_token": {
-      "max_value": 1
+      "max_quantity": 1
     },
     "disengage_token": {
-      "max_value": 1
+      "max_quantity": 1
     },
     "life": {
       "initial": 1,
@@ -1007,7 +891,7 @@
           "value": "max_hp"
         }
       },
-      "max_value": {
+      "max_quantity": {
         "property": {
           "value": "max_hp"
         }
@@ -1029,7 +913,7 @@
       "prototypes": [
         "basic"
       ],
-      "match_characters": [
+      "game_characters": [
         "1v1"
       ]
     },
@@ -1037,62 +921,9 @@
       "prototypes": [
         "basic"
       ],
-      "match_characters": [
+      "game_characters": [
         "1v2"
       ]
     }
-  },
-  "match_characters": {
-    "Mr. Jazz": {
-      "name": "Mr. Jazz",
-      "alignment": "monster",
-      "position": [
-        50,
-        20
-      ],
-      "initiative": {
-        "initiative": {
-          "bonus": 0
-        }
-      }
-    },
-    "Super Goblin 1": {
-      "name": "Super Goblin",
-      "alignment": "monster",
-      "position": [
-        50,
-        50
-      ],
-      "initiative": {
-        "alignment": {
-          "initiative": {
-            "bonus": 0
-          }
-        }
-      }
-    },
-    "Super Goblin 2": {
-      "name": "Super Goblin",
-      "alignment": "monster",
-      "position": [
-        50,
-        50
-      ],
-      "initiative": {
-        "alignment": {
-          "initiative": {
-            "bonus": 0
-          }
-        }
-      }
-    },
-    "1v1": [
-      "Mr. Jazz",
-      "Super Goblin 1"
-    ],
-    "1v2": [
-      "1v1",
-      "Super Goblin 2"
-    ]
   }
 }

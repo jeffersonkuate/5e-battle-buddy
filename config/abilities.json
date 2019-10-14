@@ -98,67 +98,6 @@
         ]
       }
     },
-    "gnome_cunning": {
-      "hook": {
-        "profile": "roll"
-      },
-      "conditions": [
-        {
-          "or": {
-            "arguments": [
-              {
-                "contains": {
-                  "arguments": [
-                    {
-                      "attack_attributes": {
-                        "property": {
-                          "value": "tags"
-                        }
-                      }
-                    },
-                    "magic",
-                    "wisdom"
-                  ]
-                }
-              },
-              {
-                "contains": {
-                  "arguments": [
-                    {
-                      "property": {
-                        "value": "attack_attributes"
-                      }
-                    },
-                    "magic",
-                    "charisma"
-                  ]
-                }
-              },
-              {
-                "contains": {
-                  "arguments": [
-                    {
-                      "property": {
-                        "value": "attack_attributes"
-                      }
-                    },
-                    "magic",
-                    "intelligence"
-                  ]
-                }
-              }
-            ]
-          }
-        }
-      ],
-      "trigger": {
-        "effects": [
-          {
-            "profile": "advantage"
-          }
-        ]
-      }
-    },
     "dodge": {
       "hook": {
         "profile": "roll"

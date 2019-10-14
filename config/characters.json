@@ -20,12 +20,18 @@
       "charisma": 15,
       "max_hp": 32,
       "abilities": [
-        "basic",
-        "gnome_cunning"
+        "basic"
       ],
       "skills": [
+        "rapier_action_attack",
+        "abstain",
+        "movement",
         "dodge",
-        "abstain"
+        "rapier_opportunity_attack",
+        "heavy_crossbow_attack",
+        "super_heavy_crossbow_attack",
+        "disengage",
+        "dodge"
       ]
     },
     "Super Goblin": {
@@ -45,8 +51,13 @@
         "mischievous"
       ],
       "skills": [
+        "abstain",
+        "movement",
         "dodge",
-        "abstain"
+        "goblin_scimitar_action_attack",
+        "goblin_scimitar_opportunity_attack",
+        "disengage",
+        "dodge"
       ]
     },
     "PC1": {

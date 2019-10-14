@@ -1,5 +1,5 @@
 from match import *
-from basics import *
+from basic import *
 
 from multiprocessing.pool import Pool
 

@@ -1,12 +1,32 @@
 import math
 
 from display.display_message import DisplayMessage
-from models.json_def import *
-from models.prompts import *
-from basics.basics import *
+from model.json_def import *
+from model.prompts import *
+from basic.basics import *
 
 
 # Match
+
+class InitiativeContext(BasicContext):
+    def get_initiative(self, expression=None, display_message=None):
+        if expression is None:
+            expression = self.initiative
+        if expression is None:
+            expression = self.roll(get_d20())
+
+        match_initiative = self.match_initiative
+        if match_initiative is None:
+            match_initiative = self.eval(expression, display_message=display_message)
+            self.match_initiative = match_initiative
+        return match_initiative
+
+    def get(self, key):
+        if key == INITIATIVE:
+            return self.get_initiative()
+        else:
+            return super().get(key)
+
 
 class MatchContext(BasicContext):
     def __init__(self, maximum_turns, properties=None, strategies=None):
@@ -172,7 +192,7 @@ class InitiativeSet(BasicContext):
         self.initiatives.sort(reverse=True)
 
 
-class MatchCharacter(BasicContext):
+class MatchCharacter(InitiativeContext):
     def __init__(self, properties=None, name='', base=None):
         if name == '':
             name = properties[NAME]
@@ -202,7 +222,7 @@ class MatchCharacter(BasicContext):
         self.effect_map[REMOVAL_FROM_PLAY] = self.remove_from_play
 
         hook_names = [INITIALIZE, ROLL, START_OF_TURN, END_OF_TURN, MOVEMENT, THREATENED_ZONE_ENTRANCE,
-                      THREATENED_ZONE_EXIT, DAMAGE_DONE, DAMAGE_TAKEN, REMOVAL_FROM_PLAY, TICKER]
+                      THREATENED_ZONE_EXIT, ATTACKING, ATTACKED, DAMAGE_DONE, DAMAGE_TAKEN, REMOVAL_FROM_PLAY, TICKER]
         for hook_name in hook_names:
             self.hook_map[hook_name] = []
 
@@ -262,30 +282,39 @@ class MatchCharacter(BasicContext):
     def attack(self, expression, display_message=None):
         actor = self.get(ACTOR)
 
-        attack_attributes = BasicContext({TYPE: self.eval(expression[TYPE], display_message=display_message)})
-        actor.set_temp(ATTACK_ATTRIBUTES, attack_attributes)
-        self.set_temp(ATTACK_ATTRIBUTES, attack_attributes)
-
-        attack_attributes[HIT_METRIC] = self.eval(expression[HIT_METRIC], display_message=display_message)
-        attack_attributes[SAVE_METRIC] = self.eval(expression[SAVE_METRIC], display_message=display_message)
+        attack_attributes = {
+            TYPE: self.eval(expression[TYPE], display_message=display_message),
+            HIT_METRIC: self.eval(expression[HIT_METRIC], display_message=display_message),
+            SAVE_METRIC: self.eval(expression[SAVE_METRIC], display_message=display_message)
+        }
+        self.set_temp(ATTACK_ATTRIBUTES, TempAttributes(attack_attributes))
+        actor.set_temp(ATTACK_ATTRIBUTES, TempAttributes(attack_attributes))
+        actor.trigger_hook(ATTACKING)
 
         if self.check_conditions(expression[HIT_CONDITIONS]):
-            damage_attributes = BasicContext({TYPE: self.eval(expression[TYPE], display_message=display_message)})
-            self.set_temp(DAMAGE_ATTRIBUTES, damage_attributes)
-            self.damage(expression[self.eval(DAMAGE, display_message=display_message)])
+            damage_attributes = {
+                TYPE: self.eval(expression[TYPE], display_message=display_message),
+                DAMAGE: self.eval(expression[DAMAGE], display_message=display_message)
+            }
+            self.set_temp(DAMAGE_ATTRIBUTES, TempAttributes(damage_attributes))
+            actor.set_temp(DAMAGE_ATTRIBUTES, TempAttributes(damage_attributes))
+            self.trigger_hook(ATTACKED)
+
+            self.damage()
+
             self.clear_temp(DAMAGE_ATTRIBUTES)
+            actor.clear_temp(DAMAGE_ATTRIBUTES)
 
-        actor.clear_temp(ATTACK_ATTRIBUTES)
         self.clear_temp(ATTACK_ATTRIBUTES)
+        actor.clear_temp(ATTACK_ATTRIBUTES)
 
-    def damage(self, value, display_message=None):
+    def damage(self, display_message=None):
+        actor = self.get(ACTOR)
         damage_attributes = self.get(DAMAGE_ATTRIBUTES)
-        damage_attributes.set(DAMAGE, value)
         damage = damage_attributes.get(DAMAGE)
+
         self.resources.debit(self.resources.get(HIT_POINT), damage)
         self.trigger_hook(DAMAGE_TAKEN)
-
-        actor = self.get(ACTOR)
         actor.trigger_hook(DAMAGE_DONE)
 
     def roll(self, expression, display_message=None):
@@ -317,10 +346,10 @@ class MatchCharacter(BasicContext):
         return value
 
     def get(self, key):
-        if isinstance(key, str) and (re_match(key, REGEX_SAVE) or re_match(key, REGEX_AM)):
+        if isinstance(key, str) and (re_match(REGEX_SAVE, key) or re_match(REGEX_AM, key)):
             attribute = key.split(SEPARATOR)[0]
             value = math.floor((self.get(attribute) - 10) / 2)
-            if (attribute in self.proficiencies) and re_match(key, REGEX_SAVE):
+            if (attribute in self.proficiencies) and re_match(REGEX_SAVE, key):
                 value += self.proficiency_bonus
             return value
         else:
@@ -335,7 +364,12 @@ class MatchCharacter(BasicContext):
             return super().__str__()
 
 
-class MatchAlignment(BasicContext):
+class TempAttributes(BasicContext):
+    def __init__(self, attributes):
+        super().__init__(properties=attributes)
+
+
+class MatchAlignment(InitiativeContext):
     def __init__(self, properties=None, name='', base=None):
         self.match_initiative = None
         super().__init__(properties, name, base)

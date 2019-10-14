@@ -1,4 +1,4 @@
-from models.prompts import *
+from model.prompts import *
 
 
 class DisplayMessage:

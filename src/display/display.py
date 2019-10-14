@@ -1,7 +1,7 @@
 import os
 import time
 
-from models.prompts import *
+from model.prompts import *
 
 
 # Why are you reading this, DON'T USE THIS CLASS

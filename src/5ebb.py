@@ -1,8 +1,7 @@
-import json
 import os
 import sys
 
-from basics import *
+from basic import *
 # from display.display import Display
 from display.better_display import Display
 from strategy import StrategyManager
@@ -50,12 +49,14 @@ def get_concretes(expression):
             if value.get(PROTOTYPE) is None:
                 value[PROTOTYPE] = False
 
-            prototypes = []
             if PROTOTYPES in value:
-                prototypes = value[PROTOTYPES]
-
-            for prototype in prototypes:
-                deep_fill(value, values[prototype])
+                properties = {}
+                shallow_fill(properties, value.get(PROPERTIES))
+                for prototype_name in value[PROTOTYPES]:
+                    prototype = values[prototype_name]
+                    shallow_fill(properties, prototype.get(PROPERTIES))
+                    deep_fill(value, prototype)
+                value[PROPERTIES] = properties
 
             values[key] = value
 
@@ -101,10 +102,11 @@ def main():
 
     while True:
         user_input = display.input("There have been " + str(optimization_count) + " optimization(s) made.\n"
-                                   + "Start: step through a demo optimized match\n"
-                                   + "Info: get info on current strategies\n"
-                                   + "Optimize: optimize all strategies\n"
-                                   + "Quit: quit program\n",
+                                   + THIN_DIVIDER + "\n"
+                                   + "Start: step through a demo optimized match\n\n"
+                                   + "Info: get info on current strategies\n\n"
+                                   + "Optimize: optimize all strategies\n\n"
+                                   + "Quit: quit program\n\n",
                                    options=['Start', 'Info', 'Optimize', 'Quit']).lower()
         # user_input = ''
 

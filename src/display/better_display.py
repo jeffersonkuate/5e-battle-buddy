@@ -3,7 +3,7 @@ from tkinter import *
 import tkinter.scrolledtext as tkst
 from threading import Thread, Lock, Event
 
-from models.prompts import *
+from model.prompts import *
 
 HORIZONTAL_PADDING = 10
 VERTICAL_PADDING = 10

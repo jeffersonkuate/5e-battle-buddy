@@ -44,6 +44,8 @@ TARGETING = 'targeting'
 TARGET = 'target'
 HOOK = 'hook'
 
+NULLABLE = 'nullable'
+
 # Basic Functions
 ADDITION = 'addition'
 SUBTRACTION = 'subtraction'
@@ -77,6 +79,8 @@ ROLL = 'roll'
 MOVEMENT = 'movement'
 THREATENED_ZONE_ENTRANCE = 'threatened_zone_entrance'
 THREATENED_ZONE_EXIT = 'threatened_zone_exit'
+ATTACKING = 'attacking'
+ATTACKED = 'attacked'
 DAMAGE_DONE = 'damage_done'
 DAMAGE_TAKEN = 'damage_taken'
 DEATH = 'death'
