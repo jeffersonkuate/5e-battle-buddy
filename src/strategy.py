@@ -34,9 +34,13 @@ class StrategyManager(BasicContext):
     def get_strategy_name(self, character):
         return character.eval(self.strategy_grouping)
 
+    # Sole source of display_messages
     def step(self, display):
-        MatchContext(self.maximum_turns, properties=self.match_data, strategies=self.strategies).simulate(
-            display=display)
+        display_message = DisplayMessage(display)
+        match_context = MatchContext(self.maximum_turns, properties=self.match_data,
+                                     strategies=self.strategies, display_message=display_message)
+        display_message.input()
+        match_context.simulate(display=display)
 
     def optimize(self, strategy_name):
         old_strategy = self.strategies[strategy_name]

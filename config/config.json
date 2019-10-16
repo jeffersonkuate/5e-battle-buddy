@@ -1,15 +1,15 @@
 {
   "game": "1v1",
   "strategy": {
-    "maximum_turns": 10,
-    "simulations_per_strategy": 10,
+    "maximum_turns": 20,
+    "simulations_per_strategy": 100,
     "novel_strategy_count": 10,
     "cloned_strategy_count": 5,
     "mutated_strategy_count": 5,
     "merged_strategy_count": 5,
-    "max_strategy_complexity": 10,
+    "max_strategy_complexity": 5,
     "mutation_coefficient": 0.005,
-    "fitness_improvement_threshold": 1.005,
+    "fitness_improvement_threshold": 1.05,
     "strategy_grouping": {
       "alignment": {
         "property": {

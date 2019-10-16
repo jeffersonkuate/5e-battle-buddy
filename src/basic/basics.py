@@ -194,12 +194,12 @@ class BasicContext(MutableMapping, Hashable):
             self.eval(arguments[1], display_message=display_message))
 
     def roll(self, expression, display_message=None):
-        roll = self.die.roll(expression[self.eval(DIE_COUNT, display_message=display_message)],
-                             expression[self.eval(DIE_SIDES, display_message=display_message)])
-        roll_string = str(expression) + "\nCaused a roll of " + str(roll)
-        self.log(roll_string)
+        die_count = self.eval(expression[DIE_COUNT], display_message=display_message)
+        die_sides = self.eval(expression[DIE_SIDES], display_message=display_message)
+        roll = self.die.roll(die_count, die_sides)
+        roll_string = str(self) + " rolled [" + str(die_count) + "d" + str(die_sides) + "]\n" + str(roll)
         if display_message is not None:
-            display_message.add_sub_section(roll_string)
+            display_message.add_section(roll_string, level=3)
         return roll
 
     # Nononono what do you think you're doing? Move along; nothing to see here.
@@ -219,7 +219,7 @@ class BasicContext(MutableMapping, Hashable):
         self.clear_temp(ACTOR)
 
     def check_conditions(self, conditions=None, display_message=None):
-        return self.func_and({ARGUMENTS: conditions}) if conditions is not None else False
+        return self.func_and({ARGUMENTS: conditions}, display_message=display_message) if conditions is not None else False
 
     def get_match(self):
         return self.match if self.match is not None else self.base.get_match()
@@ -438,7 +438,7 @@ def is_list(expression):
 
 
 def is_context(context):
-    return issubclass(type(context), BasicContext)
+    return not is_evaluable(context) and issubclass(type(context), BasicContext)
 
 
 def checked_input(display, string='', prompt='', reg=REGEX_ALL):

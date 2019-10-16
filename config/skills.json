@@ -87,13 +87,6 @@
             ]
           },
           {
-            "profile": "debit",
-            "arguments": [
-              "hit_point",
-              12.5
-            ]
-          },
-          {
             "profile": "credit",
             "arguments": [
               "dodge_token",

@@ -29,7 +29,7 @@ class InitiativeContext(BasicContext):
 
 
 class MatchContext(BasicContext):
-    def __init__(self, maximum_turns, properties=None, strategies=None):
+    def __init__(self, maximum_turns, properties=None, strategies=None, display_message=None):
         self.maximum_turns = maximum_turns
         self.board = Board(properties[BOARD_WIDTH], properties[BOARD_HEIGHT])
         self.alignments = []
@@ -46,7 +46,7 @@ class MatchContext(BasicContext):
                 self.initiative_set.add_character(character)
                 if character.alignment not in self.alignments:
                     self.alignments.append(character.alignment)
-                character.trigger_hook(INITIALIZE)
+                character.trigger_hook(INITIALIZE, display_message=display_message)
 
         self.set_match(self)
 
@@ -70,30 +70,27 @@ class MatchContext(BasicContext):
                 display_message.add_section("Current Character: " + str(current_character))
                 display_message.add_text("Current Initiative: " + str(initiative))
                 display_message.add_text("Current Turn: " + str(turn))
-                display_message.add_section("Strategy: " + strategy.name)
+                display_message.add_section("Strategy: " + strategy.name, level=2)
                 # TODO: see note on 5ebb.report_strategies... shame on you
-                for node in strategy.nodes:
-                    display_message.add_text(str(node))
-                display_message.add_sub_section("Possible actions: ")
+                # for node in strategy.nodes:
+                #     display_message.add_text(str(node))
+                display_message.add_section("Possible actions: ", level=1)
                 for action in actions:
                     display_message.add_text(str(action))
 
                 action = strategy.choose_action(self, actions)
-                self.log(str(action))
                 display_message.add_section("Action chosen: " + str(action))
 
                 action.activate(display_message)
                 for character in [character for character in self.match_characters if character.is_in_play()]:
                     character.trigger_hook(TICKER)
 
-                if display is not None:
-                    display_message.input()
+                display_message.input()
             else:
                 character = self.initiative_set.get_next_character()
                 if character is not None:
                     display_message.add_section("Current Turn: " + str(character))
                     self.action_set_stack.append(character.get_actions())
-                    display_message.add_sub_section("Adding the ")
 
     def is_ongoing(self):
         return (self.is_conflict()) and (self.get_turn() <= self.maximum_turns)
@@ -240,15 +237,17 @@ class MatchCharacter(InitiativeContext):
         y = properties[POSITION][1]
         self.set(POSITION, Position(x, y))
 
-    def trigger_hook(self, hook_name):
+    def trigger_hook(self, hook_name, display_message=None):
         for ability in self.hook_map[hook_name]:
-            if self.check_conditions(ability.conditions):
+            if self.check_conditions(ability.conditions, display_message=display_message):
+                if display_message is not None:
+                    display_message.add_section(self.get(NAME) + " triggered ability " + ability.get(NAME), level=2)
                 targeting = get_targeting(self.hook_targeting.get(hook_name), base=self)
                 targets = targeting.get_targets()
                 target = None
                 if len(targets) > 0:
                     target = targets[0]
-                targeting.act(target, Trigger(ability.trigger), self)
+                targeting.act(target, Trigger(ability.trigger), self, display_message=display_message)
 
     def get_actions(self):
         actions = []
@@ -291,7 +290,8 @@ class MatchCharacter(InitiativeContext):
         actor.set_temp(ATTACK_ATTRIBUTES, TempAttributes(attack_attributes))
         actor.trigger_hook(ATTACKING)
 
-        if self.check_conditions(expression[HIT_CONDITIONS]):
+        display_message.add_section("Attack to be done:\n" + json.dumps(attack_attributes), level=2)
+        if self.check_conditions(expression[HIT_CONDITIONS], display_message):
             damage_attributes = {
                 TYPE: self.eval(expression[TYPE], display_message=display_message),
                 DAMAGE: self.eval(expression[DAMAGE], display_message=display_message)
@@ -299,6 +299,7 @@ class MatchCharacter(InitiativeContext):
             self.set_temp(DAMAGE_ATTRIBUTES, TempAttributes(damage_attributes))
             actor.set_temp(DAMAGE_ATTRIBUTES, TempAttributes(damage_attributes))
             self.trigger_hook(ATTACKED)
+            display_message.add_section("Attack to be done:\n" + json.dumps(damage_attributes), level=2)
 
             self.damage()
 
@@ -318,7 +319,7 @@ class MatchCharacter(InitiativeContext):
         actor.trigger_hook(DAMAGE_DONE)
 
     def roll(self, expression, display_message=None):
-        self.set_temp(ROLL_ATTRIBUTES, {CURRENT_ROLL: super().roll(expression)})
+        self.set_temp(ROLL_ATTRIBUTES, {CURRENT_ROLL: super().roll(expression, display_message=display_message)})
         self.trigger_hook(ROLL)
         roll = self.get(ROLL_ATTRIBUTES)[CURRENT_ROLL]
         self.clear_temp(ROLL_ATTRIBUTES)
@@ -434,12 +435,12 @@ class Targeting(BasicContext):
 
     def act(self, context, trigger, actor=None, display_message=None):
         trigger = context.re_context(trigger)
-        if trigger.check_conditions():
+        if trigger.check_conditions(display_message=display_message):
             for effect in trigger.success_effects:
-                context.affect(effect, actor)
+                context.affect(effect, actor, display_message=display_message)
         else:
             for effect in trigger.failaure_effects:
-                context.affect(effect, actor)
+                context.affect(effect, actor, display_message=display_message)
         for effect in trigger.effects:
             context.affect(effect, actor, display_message=display_message)
 
@@ -492,7 +493,7 @@ class Trigger(BasicContext):
     def check_conditions(self, conditions=None, display_message=None):
         if conditions is None:
             conditions = self.conditions
-        return super().check_conditions(conditions)
+        return super().check_conditions(conditions, display_message=display_message)
 
 
 class MatchResourceSet(BasicContext):

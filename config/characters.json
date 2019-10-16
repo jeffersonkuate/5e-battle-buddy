@@ -23,15 +23,9 @@
         "basic"
       ],
       "skills": [
-        "rapier_action_attack",
-        "abstain",
-        "movement",
-        "dodge",
-        "rapier_opportunity_attack",
         "heavy_crossbow_attack",
         "super_heavy_crossbow_attack",
-        "disengage",
-        "dodge"
+        "abstain"
       ]
     },
     "Super Goblin": {
@@ -51,13 +45,8 @@
         "mischievous"
       ],
       "skills": [
-        "abstain",
-        "movement",
-        "dodge",
         "goblin_scimitar_action_attack",
-        "goblin_scimitar_opportunity_attack",
-        "disengage",
-        "dodge"
+        "abstain"
       ]
     },
     "PC1": {
