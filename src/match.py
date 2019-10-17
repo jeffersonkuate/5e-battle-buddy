@@ -116,7 +116,7 @@ class MatchContext(BasicContext):
 
     def __str__(self):
         try:
-            string = 'Game: ' + self.name
+            string = '<Game> ' + self.name
             for character in self.match_characters:
                 string += '\n' + str(character)
             return string
@@ -290,7 +290,7 @@ class MatchCharacter(InitiativeContext):
         actor.set_temp(ATTACK_ATTRIBUTES, TempAttributes(attack_attributes))
         actor.trigger_hook(ATTACKING)
 
-        display_message.add_section("Attack to be done:\n" + json.dumps(attack_attributes), level=2)
+        display_message.add_section("Attack to be done\n" + json.dumps(attack_attributes), level=2)
         if self.check_conditions(expression[HIT_CONDITIONS], display_message):
             damage_attributes = {
                 TYPE: self.eval(expression[TYPE], display_message=display_message),
@@ -299,7 +299,7 @@ class MatchCharacter(InitiativeContext):
             self.set_temp(DAMAGE_ATTRIBUTES, TempAttributes(damage_attributes))
             actor.set_temp(DAMAGE_ATTRIBUTES, TempAttributes(damage_attributes))
             self.trigger_hook(ATTACKED)
-            display_message.add_section("Attack to be done:\n" + json.dumps(damage_attributes), level=2)
+            display_message.add_section("Damage to be done\n" + json.dumps(damage_attributes), level=2)
 
             self.damage()
 
@@ -358,7 +358,7 @@ class MatchCharacter(InitiativeContext):
 
     def __str__(self):
         try:
-            return (self.name + ' (' + str(self.position) + '): '
+            return (self.name + ' (' + str(self.position) + ') '
                     + str(self.resources.get(HIT_POINT).get_quantity()) + '/'
                     + str(self.resources.get(HIT_POINT).get_max_quantity()))
         except Exception:
@@ -417,7 +417,8 @@ class MatchAction(BasicContext):
         self.targeting.act(self.target, Trigger(self.trigger), actor=self.actor, display_message=display_message)
 
     def __str__(self):
-        return type(self).__name__ + ': ' + self.actor.name + ' does ' + self.skill_name + ' at ' + self.target.name
+        return ('<' + type(self).__name__ + '> ' + self.actor.name
+                + ' does ' + self.skill_name + ' at ' + self.target.name)
 
 
 class Targeting(BasicContext):

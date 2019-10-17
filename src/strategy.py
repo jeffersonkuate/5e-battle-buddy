@@ -215,7 +215,7 @@ class Node(BasicContext):
     def __str__(self):
         string = ''
         string += 'If ' + str(self.condition) + ', then ' + str(self.action)
-        string += '\n' + THIN_DIVIDER + '\nWeight: ' + str(self.weight)
+        string += '\n' + THIN_DIVIDER + '\nwith weight [' + str(self.weight) + ']'
         return string
 
 

@@ -85,7 +85,7 @@ def report_strategies(manager, display):
 
 
 def report_strategy(strategy, display):
-    report = 'Strategy: ' + strategy.name + ' (Fitness: ' + str(strategy.fitness) + ')'
+    report = '<Strategy> ' + strategy.name + ' fitness of [' + str(strategy.fitness) + ']'
     for node in strategy.nodes:
         report += '\n' + THICK_DIVIDER + '\n'
         report += str(node)

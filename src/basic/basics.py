@@ -294,10 +294,10 @@ class BasicContext(MutableMapping, Hashable):
 
     def log(self, string):
         if self.logger is not None:
-            self.logger.log(str(self) + ':\n' + string)
+            self.logger.log(str(self) + '\n' + string)
 
     def __str__(self):
-        return type(self).__name__ + ': ' + self.name + ' [' + str(id(self)) + ']'
+        return '<' + type(self).__name__ + '> ' + self.name
 
 
 # TODO: make this class support all int, list, and dict operations
