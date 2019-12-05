@@ -30,8 +30,8 @@ def load_config():
 
 
 def load(path):
-    if not re_match(REGEX_LONG_PATH, path):
-        path = os.getcwd() + '/../config/' + path
+    if not re_match('/', path):
+        path = os.path.join(os.getcwd(), 'config', path)
     return json.load(open(path))
 
 

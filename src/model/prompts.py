@@ -19,7 +19,6 @@ THICK_SEPARATOR = "||"
 THIN_SEPARATOR = "|"
 
 # Regular Expressions
-REGEX_LONG_PATH = '/'
 REGEX_QUIT = 'q$|quit$'
 REGEX_INFO = 'i$|info$'
 REGEX_START = 's$|start$'
